@@ -12,6 +12,9 @@
  */
 #define UNUSED(x) (void)(x)
 
+/**
+ * Uses enif_free, but ensures that the value being freed is `NULL` first.
+ */
 #define ENIF_SAFE_FREE(x) \
   if(x != NULL) { enif_free(x); }
 
@@ -34,6 +37,10 @@ static ERL_NIF_TERM pa_error_to_error_tuple(ErlNifEnv *, PaError);
     }                                                       \
   }
 
+/**
+ * Structure for defining conversions between PortAudio errors
+ * and strings, to eventually be converted in to erlang atoms.
+ */
 struct err_to_str {
   PaError err;
   const char *str;
@@ -76,6 +83,10 @@ static struct err_to_str pa_errors[] = {
   { 0, NULL } // SENTINEL
 };
 
+/**
+ * Structure for defining conversions between PortAudio host API
+ * type ID's to strings to eventually be converted in to erlang atoms.
+ */
 struct api_type_to_str {
   PaHostApiTypeId type_id;
   const char *str;
@@ -114,35 +125,9 @@ static struct sample_format_to_str pa_sample_formats[] = {
   { 0, NULL } // SENTINEL
 };
 
-struct portaudio_stream_handle
-{
-  // Thread management related
-  bool      started;
-  bool      should_stop;
-  ErlNifTid thread;
-
-  // Stream related
-  PaStream *pa;
-  PaStreamParameters *input;
-  PaStreamParameters *output;
-  int flags;
-  double sample_rate;
-  unsigned long frames_per_buffer;
-
-  // Erlang related
-  ErlNifPid *owner_pid;
-  ErlNifPid *reader_pid;
-
-  // Buffers and constants
-  unsigned short input_frame_size;
-  unsigned short input_sample_size;
-
-  unsigned short output_frame_size;
-  unsigned short output_sample_size;
-
-  uint8_t total_samples;
-};
-
+/**
+ * Convert a plain C string to an erlang binary.
+ */
 static ERL_NIF_TERM str_to_binary_term(ErlNifEnv *env, const char *str)
 {
   ERL_NIF_TERM binary;
@@ -310,6 +295,22 @@ static ERL_NIF_TERM portaudio_device_count_nif(ErlNifEnv *env, int argc, const E
 
 static ERL_NIF_TERM pa_device_info_to_term(ErlNifEnv *env, const PaDeviceInfo *device_info)
 {
+}
+
+static ERL_NIF_TERM portaudio_device_info_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+  int i;
+  const PaDeviceInfo *device_info;
+
+  if(argc != 1
+     || !enif_get_int(env, argv[0], &i)
+     || i >= Pa_GetDeviceCount()) {
+    return enif_make_badarg(env);
+  }
+
+  device_info = Pa_GetDeviceInfo(i);
+  assert(device_info != NULL);
+
 #define N_FIELDS 9
   // TODO: use a record or something
   const ERL_NIF_TERM fields[N_FIELDS] = {
@@ -337,27 +338,14 @@ static ERL_NIF_TERM pa_device_info_to_term(ErlNifEnv *env, const PaDeviceInfo *d
                  enif_make_double(env, device_info->defaultSampleRate))
   };
 
-
   return enif_make_list_from_array(env, fields, N_FIELDS);
 #undef N_FIELDS
 }
 
-static ERL_NIF_TERM portaudio_device_info_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
-{
-  int i;
-  const PaDeviceInfo *device_info;
-
-  if(argc != 1
-     || !enif_get_int(env, argv[0], &i)
-     || i >= Pa_GetDeviceCount()) {
-    return enif_make_badarg(env);
-  }
-
-  device_info = Pa_GetDeviceInfo(i);
-  assert(device_info != NULL);
-  return pa_device_info_to_term(env, device_info);
-}
-
+/**
+ * Convert an erlang atom to a PortAudio sample format. Returns `-1` if no
+ * matching item is found.
+ */
 static PaSampleFormat atom_to_sample_format(ErlNifEnv *env, ERL_NIF_TERM sample_atom) {
   struct sample_format_to_str *cur = &pa_sample_formats[0];
   assert(cur != NULL); // should never happen
@@ -384,6 +372,13 @@ static bool is_term_nil(ErlNifEnv *env, ERL_NIF_TERM term)
           || enif_compare(term, enif_make_atom(env, "nil")) == 0);
 }
 
+/**
+ * Coverts an erlang tuple in to PortAudio stream parameters.
+ *
+ * Returns `false` if conversion failed or `true` on success. Note however
+ * that `true` may be returned without `stream_params` being initialized if
+ * the passed term corresponds to an erlang `nil` value.
+ */
 static bool convert_tuple_to_stream_params(ErlNifEnv *env, ERL_NIF_TERM term, PaStreamParameters **stream_params)
 {
   if(!enif_is_tuple(env, term)) {
@@ -412,6 +407,11 @@ static bool convert_tuple_to_stream_params(ErlNifEnv *env, ERL_NIF_TERM term, Pa
   params->device = device;
   params->channelCount = channel_count;
   params->sampleFormat = atom_to_sample_format(env, tuple[2]);
+  if(params->sampleFormat < 0) {
+    // TODO: include useful info
+    return false;
+  }
+
   params->suggestedLatency = suggested_latency;
   params->hostApiSpecificStreamInfo = NULL;
   *stream_params = params;
