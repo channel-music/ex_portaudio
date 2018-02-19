@@ -12,6 +12,9 @@
  */
 #define UNUSED(x) (void)(x)
 
+#define ENIF_SAFE_FREE(x) \
+  if(x != NULL) { enif_free(x); }
+
 /**
  * Make an erlang keyword list item. Represented as `{KEY, VAL}`.
  */
@@ -32,7 +35,7 @@ static ERL_NIF_TERM pa_error_to_error_tuple(ErlNifEnv *, PaError);
   }
 
 struct err_to_str {
-  PaError num;
+  PaError err;
   const char *str;
 };
 
@@ -74,7 +77,7 @@ static struct err_to_str pa_errors[] = {
 };
 
 struct api_type_to_str {
-  PaHostApiTypeId num;
+  PaHostApiTypeId type_id;
   const char *str;
 };
 
@@ -93,6 +96,21 @@ static struct api_type_to_str pa_drivers[] = {
   { paJACK,            "jack" },
   { paWASAPI,          "wasapi" },
   { paAudioScienceHPI, "audio_science_hpi" },
+  { 0, NULL } // SENTINEL
+};
+
+struct sample_format_to_str {
+  PaSampleFormat fmt;
+  const char *str;
+};
+
+static struct sample_format_to_str pa_sample_formats[] = {
+  { paFloat32, "float32" },
+  { paInt32,   "int32" },
+  { paInt24,   "int24" },
+  { paInt16,   "int16" },
+  { paInt8,    "int8" },
+  { paUInt8,   "uint8" },
   { 0, NULL } // SENTINEL
 };
 
@@ -143,7 +161,7 @@ const char *pa_error_to_char(PaError err)
   assert(cur != NULL); // should never happen
 
   while(cur->str != NULL) {
-    if(cur->num == err) {
+    if(cur->err == err) {
       return cur->str;
     }
     cur++;
@@ -242,7 +260,7 @@ static ERL_NIF_TERM portaudio_host_api_index_from_type_nif(ErlNifEnv *env, int a
 
     while(cur->str != NULL) {
       if(enif_compare(enif_make_atom(env, cur->str), argv[0]) == 0) {
-        type = cur->num;
+        type = cur->type_id;
         break;
       }
       cur++;
@@ -340,6 +358,92 @@ static ERL_NIF_TERM portaudio_device_info_nif(ErlNifEnv *env, int argc, const ER
   return pa_device_info_to_term(env, device_info);
 }
 
+static PaSampleFormat atom_to_sample_format(ErlNifEnv *env, ERL_NIF_TERM sample_atom) {
+  struct sample_format_to_str *cur = &pa_sample_formats[0];
+  assert(cur != NULL); // should never happen
+
+  while(cur->str != NULL) {
+    if(enif_compare(sample_atom, enif_make_atom(env, cur->str)) == 0) {
+      return cur->fmt;
+    }
+    cur++;
+  }
+
+  return -1;
+}
+
+/**
+ * Returns `true` if the given erlang term is considered a `nil` value.
+ *
+ * In this case it is either `undefined`, `null` or `nil`.
+ */
+static bool is_term_nil(ErlNifEnv *env, ERL_NIF_TERM term)
+{
+  return (enif_compare(term, enif_make_atom(env, "undefined")) == 0
+          || enif_compare(term, enif_make_atom(env, "null")) == 0
+          || enif_compare(term, enif_make_atom(env, "nil")) == 0);
+}
+
+static bool convert_tuple_to_stream_params(ErlNifEnv *env, ERL_NIF_TERM term, PaStreamParameters **stream_params)
+{
+  if(!enif_is_tuple(env, term)) {
+    // Should still continue if term is nil
+    return is_term_nil(env, term);
+  }
+
+  int arity, device, channel_count;
+  double suggested_latency;
+  const ERL_NIF_TERM *tuple;
+  if(!enif_get_tuple(env, term, &arity, &tuple)
+     || arity != 4
+     || !enif_get_int(env, tuple[0], &device)
+     || !enif_get_int(env, tuple[1], &channel_count)
+     || !enif_is_atom(env, tuple[2])
+     || !enif_get_double(env, tuple[3], &suggested_latency)
+     // FIXME: handle these seperately
+     || device < 0
+     || device >= Pa_GetDeviceCount()
+     || channel_count < 0) {
+
+    return false;
+  }
+
+  PaStreamParameters *params = enif_alloc(sizeof(PaStreamParameters));
+  params->device = device;
+  params->channelCount = channel_count;
+  params->sampleFormat = atom_to_sample_format(env, tuple[2]);
+  params->suggestedLatency = suggested_latency;
+  params->hostApiSpecificStreamInfo = NULL;
+  *stream_params = params;
+
+  return true;
+}
+
+static ERL_NIF_TERM portaudio_stream_format_supported_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+  PaStreamParameters *input = NULL;
+  PaStreamParameters *output = NULL;
+  double sample_rate;
+
+  if(argc != 3
+     || !convert_tuple_to_stream_params(env, argv[0], &input)
+     || !convert_tuple_to_stream_params(env, argv[1], &output)
+     || !enif_get_double(env, argv[2], &sample_rate)) {
+    ENIF_SAFE_FREE(input);
+    ENIF_SAFE_FREE(output);
+    return enif_make_badarg(env);
+  }
+
+  ENIF_SAFE_FREE(input);
+  ENIF_SAFE_FREE(output);
+
+  PaError err = Pa_IsFormatSupported(input, output, sample_rate);
+  if(err != paFormatIsSupported) {
+    return enif_make_atom(env, "false");
+  }
+  return enif_make_atom(env, "true");
+}
+
 static ErlNifFunc portaudio_nif_funcs[] =
   {
     {"version",      0, portaudio_version_nif, 0},
@@ -355,6 +459,8 @@ static ErlNifFunc portaudio_nif_funcs[] =
     {"default_output_device_index", 0, portaudio_default_output_device_index_nif, 0},
     {"device_count", 0, portaudio_device_count_nif, 0},
     {"device_info",  1, portaudio_device_info_nif, 0},
+    // Streams
+    {"stream_format_supported", 3, portaudio_stream_format_supported_nif, 0}
   };
 
 static int on_load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)

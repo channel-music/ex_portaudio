@@ -27,6 +27,10 @@ defmodule PortAudio.Native do
   def device_count, do: nif_error()
   def device_info(_index), do: nif_error()
 
+  # Streams
+  def stream_format_supported(_input, _output, _sample_format),
+    do: nif_error()
+
   defp load_nif do
     path = :filename.join(:code.priv_dir(:portaudio), 'portaudio_nif')
     :erlang.load_nif(path, 0)
