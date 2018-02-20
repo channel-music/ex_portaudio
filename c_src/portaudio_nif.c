@@ -27,7 +27,9 @@ static ERL_NIF_TERM portaudio_default_host_api_index_nif(ErlNifEnv *env, int arg
 {
   UNUSED(argc); UNUSED(argv);
 
-  return enif_make_int(env, Pa_GetDefaultHostApi());
+  PaHostApiIndex host_api_index = Pa_GetDefaultHostApi();
+  HANDLE_PA_ERROR(env, host_api_index);
+  return enif_make_int(env, host_api_index);
 }
 
 static ERL_NIF_TERM portaudio_device_index_from_host_api_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -107,15 +109,18 @@ static ERL_NIF_TERM portaudio_default_input_device_index_nif(ErlNifEnv *env, int
 {
   UNUSED(argc); UNUSED(argv);
 
-  // FIXME: handle paNoDevice
-  return enif_make_int(env, Pa_GetDefaultInputDevice());
+  PaDeviceIndex device_index = Pa_GetDefaultInputDevice();
+  HANDLE_MISSING_DEVICE(env, device_index);
+  return enif_make_int(env, device_index);
 }
 
 static ERL_NIF_TERM portaudio_default_output_device_index_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   UNUSED(argc); UNUSED(argv);
 
-  return enif_make_int(env, Pa_GetDefaultOutputDevice());
+  PaDeviceIndex device_index = Pa_GetDefaultOutputDevice();
+  HANDLE_MISSING_DEVICE(env, device_index);
+  return enif_make_int(env, device_index);
 }
 
 static ERL_NIF_TERM portaudio_device_count_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -123,7 +128,6 @@ static ERL_NIF_TERM portaudio_device_count_nif(ErlNifEnv *env, int argc, const E
   UNUSED(argc); UNUSED(argv);
 
   int num_devices = Pa_GetDeviceCount();
-  // TODO: consider throwing an exception here
   HANDLE_PA_ERROR(env, num_devices);
   return enif_make_int(env, num_devices);
 }

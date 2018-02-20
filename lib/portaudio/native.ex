@@ -62,7 +62,7 @@ defmodule PortAudio.Native do
   def host_api_info(_index), do: nif_error()
 
   @spec host_api_index_from_type(non_neg_integer | atom)
-          :: integer | {:error, :no_host_api}
+    :: integer | {:error, :no_host_api}
 
   @doc """
   Returns a host API index value that has the given type.
@@ -72,7 +72,7 @@ defmodule PortAudio.Native do
   """
   def host_api_index_from_type(_type), do: nif_error()
 
-  @spec default_host_api_index() :: non_neg_integer
+  @spec default_host_api_index() :: non_neg_integer | {:error, atom}
 
   @doc """
   Returns the default host API used by the system.
@@ -92,14 +92,16 @@ defmodule PortAudio.Native do
   def device_index_from_host_api(_host_idx, _dev_idx),
     do: nif_error()
 
-  @spec default_input_device_index() :: non_neg_integer
+  @spec default_input_device_index()
+    :: non_neg_integer | {:error, :no_default}
 
   @doc """
   Returns the index of the default input device used by the system.
   """
   def default_input_device_index, do: nif_error()
 
-  @spec default_output_device_index() :: non_neg_integer
+  @spec default_output_device_index()
+    :: non_neg_integer | {:error, :no_default}
 
   @doc """
   Returns the index of the default output device used by the system.
@@ -125,7 +127,7 @@ defmodule PortAudio.Native do
 
   @type stream_params :: {device            :: non_neg_integer,
                           channel_count     :: non_neg_integer,
-                          # TODO: provide allowed formats
+
                           sample_format     :: atom,
                           suggested_latency :: float}
 

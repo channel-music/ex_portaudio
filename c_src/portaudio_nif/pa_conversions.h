@@ -13,7 +13,7 @@ ERL_NIF_TERM pa_error_to_error_tuple(ErlNifEnv *env, PaError err);
 
 /**
  * Check a PortAudio return value for errors and return from
- * the current function with the related erlang term if found.
+ * the calling function with an error tuple if found.
  */
 #define HANDLE_PA_ERROR(ENV, ERR_OR_IDX)                    \
   {                                                         \
@@ -22,6 +22,16 @@ ERL_NIF_TERM pa_error_to_error_tuple(ErlNifEnv *env, PaError err);
     }                                                       \
   }
 
+/**
+ * Check a PortAudio device index return value and return from
+ * the calling function with an error tuple if found.
+ */
+#define HANDLE_MISSING_DEVICE(ENV, IDX)                 \
+  {                                                     \
+    if((IDX) == paNoDevice) {                           \
+      return erli_make_error_tuple((ENV), "no_device"); \
+    }                                                   \
+  }
 
 /**
  * Coverts an erlang tuple in to PortAudio stream parameters.
