@@ -1,8 +1,4 @@
-defmodule PortaudioTest do
+defmodule PortAudioTest do
   use ExUnit.Case
-  doctest Portaudio
-
-  test "greets the world" do
-    assert Portaudio.hello() == :world
-  end
+  doctest PortAudio
 end

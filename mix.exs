@@ -1,4 +1,4 @@
-defmodule Portaudio.MixProject do
+defmodule PortAudio.MixProject do
   use Mix.Project
 
   def project do
@@ -22,7 +22,8 @@ defmodule Portaudio.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:elixir_make, "~> 0.4", runtime: false}
+      {:elixir_make, "~> 0.4", runtime: false},
+      {:dialyxir, "~> 0.5", only: :dev, runtime: false},
     ]
   end
 end
