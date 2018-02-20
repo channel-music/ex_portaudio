@@ -29,9 +29,15 @@ ERL_NIF_TERM pa_error_to_error_tuple(ErlNifEnv *env, PaError err);
 #define HANDLE_MISSING_DEVICE(ENV, IDX)                 \
   {                                                     \
     if((IDX) == paNoDevice) {                           \
-      return erli_make_error_tuple((ENV), "no_device"); \
+      return erli_make_nil((ENV));                      \
     }                                                   \
   }
+
+/**
+ * Returns a PaDeviceIndex encoded as an erlang integer or if the
+ * device index doesn't exist, returns an erlang nil instead.
+ */
+ERL_NIF_TERM pa_device_to_term(ErlNifEnv *env, PaDeviceIndex device);
 
 /**
  * Coverts an erlang tuple in to PortAudio stream parameters.

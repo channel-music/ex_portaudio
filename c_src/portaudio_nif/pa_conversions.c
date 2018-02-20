@@ -127,6 +127,13 @@ ERL_NIF_TERM pa_error_to_error_tuple(ErlNifEnv *env, PaError err)
   return erli_make_error_tuple(env, pa_error_to_char(err));
 }
 
+ERL_NIF_TERM pa_device_to_term(ErlNifEnv *env, PaDeviceIndex device)
+{
+  return device == paNoDevice
+    ? erli_make_nil(env)
+    : enif_make_uint(env, device);
+}
+
 bool tuple_to_stream_params(ErlNifEnv *env, ERL_NIF_TERM term, PaStreamParameters **stream_params)
 {
   if(!enif_is_tuple(env, term)) {

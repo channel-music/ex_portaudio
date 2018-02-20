@@ -19,7 +19,7 @@ static ERL_NIF_TERM portaudio_version_nif(ErlNifEnv *env, int argc, const ERL_NI
 
   const char *version_str = Pa_GetVersionText();
   return enif_make_tuple2(env,
-                          enif_make_int(env, Pa_GetVersion()),
+                          enif_make_uint(env, Pa_GetVersion()),
                           erli_str_to_binary(env, version_str));
 }
 
@@ -29,7 +29,7 @@ static ERL_NIF_TERM portaudio_default_host_api_index_nif(ErlNifEnv *env, int arg
 
   PaHostApiIndex host_api_index = Pa_GetDefaultHostApi();
   HANDLE_PA_ERROR(env, host_api_index);
-  return enif_make_int(env, host_api_index);
+  return enif_make_uint(env, host_api_index);
 }
 
 static ERL_NIF_TERM portaudio_device_index_from_host_api_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -45,7 +45,7 @@ static ERL_NIF_TERM portaudio_device_index_from_host_api_nif(ErlNifEnv *env, int
   PaDeviceIndex device_index = Pa_HostApiDeviceIndexToDeviceIndex(host_api_index,
                                                                   host_api_device_index);
   HANDLE_PA_ERROR(env, device_index);
-  return enif_make_int(env, device_index);
+  return enif_make_uint(env, device_index);
 }
 
 static ERL_NIF_TERM portaudio_host_api_info_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -60,17 +60,18 @@ static ERL_NIF_TERM portaudio_host_api_info_nif(ErlNifEnv *env, int argc, const 
     return erli_make_nil(env);
   }
 
+  // Exceptional case
+  HANDLE_PA_ERROR(env, info->deviceCount);
+
 #define N_FIELDS 5
   const ERL_NIF_TERM fields[N_FIELDS] = {
     MAKE_KW_ITEM(env, "type", enif_make_int(env, info->type)),
     MAKE_KW_ITEM(env, "name", erli_str_to_binary(env, info->name)),
-    MAKE_KW_ITEM(env, "device_count",
-                 enif_make_int(env, info->deviceCount)),
-    // FIXME: handle paNoDevice
+    MAKE_KW_ITEM(env, "device_count", enif_make_uint(env, info->deviceCount)),
     MAKE_KW_ITEM(env, "default_input_device",
-                 enif_make_int(env, info->defaultInputDevice)),
+                 pa_device_to_term(env, info->defaultInputDevice)),
     MAKE_KW_ITEM(env, "default_output_device",
-                 enif_make_int(env, info->defaultOutputDevice))
+                 pa_device_to_term(env, info->defaultOutputDevice))
   };
 
   return enif_make_list_from_array(env, fields, N_FIELDS);
@@ -95,14 +96,16 @@ static ERL_NIF_TERM portaudio_host_api_index_from_type_nif(ErlNifEnv *env, int a
 
   PaHostApiIndex host_api_index = Pa_HostApiTypeIdToHostApiIndex(type);
   HANDLE_PA_ERROR(env, host_api_index);
-  return enif_make_int(env, host_api_index);
+  return enif_make_uint(env, host_api_index);
 }
 
 static ERL_NIF_TERM portaudio_host_api_count_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   UNUSED(argc); UNUSED(argv);
 
-  return enif_make_int(env, Pa_GetHostApiCount());
+  PaHostApiIndex host_api_index = Pa_GetHostApiCount();
+  HANDLE_PA_ERROR(env, host_api_index);
+  return enif_make_uint(env, Pa_GetHostApiCount());
 }
 
 static ERL_NIF_TERM portaudio_default_input_device_index_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -111,7 +114,7 @@ static ERL_NIF_TERM portaudio_default_input_device_index_nif(ErlNifEnv *env, int
 
   PaDeviceIndex device_index = Pa_GetDefaultInputDevice();
   HANDLE_MISSING_DEVICE(env, device_index);
-  return enif_make_int(env, device_index);
+  return enif_make_uint(env, device_index);
 }
 
 static ERL_NIF_TERM portaudio_default_output_device_index_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -120,7 +123,7 @@ static ERL_NIF_TERM portaudio_default_output_device_index_nif(ErlNifEnv *env, in
 
   PaDeviceIndex device_index = Pa_GetDefaultOutputDevice();
   HANDLE_MISSING_DEVICE(env, device_index);
-  return enif_make_int(env, device_index);
+  return enif_make_uint(env, device_index);
 }
 
 static ERL_NIF_TERM portaudio_device_count_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -129,7 +132,7 @@ static ERL_NIF_TERM portaudio_device_count_nif(ErlNifEnv *env, int argc, const E
 
   int num_devices = Pa_GetDeviceCount();
   HANDLE_PA_ERROR(env, num_devices);
-  return enif_make_int(env, num_devices);
+  return enif_make_uint(env, num_devices);
 }
 
 static ERL_NIF_TERM portaudio_device_info_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -145,7 +148,6 @@ static ERL_NIF_TERM portaudio_device_info_nif(ErlNifEnv *env, int argc, const ER
   }
 
 #define N_FIELDS 9
-  // TODO: use a record or something
   const ERL_NIF_TERM fields[N_FIELDS] = {
     MAKE_KW_ITEM(env, "name",
                  erli_str_to_binary(env, device_info->name)),

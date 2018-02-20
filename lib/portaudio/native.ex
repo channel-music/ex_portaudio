@@ -19,15 +19,15 @@ defmodule PortAudio.Native do
     name: binary,
     type: non_neg_integer,
     device_count: non_neg_integer,
-    default_input_device: non_neg_integer,
-    default_output_device: non_neg_integer
+    default_input_device: non_neg_integer | nil,
+    default_output_device: non_neg_integer | nil
   ]
 
   @type device_info :: [
     name: binary,
     host_api: non_neg_integer,
-    max_input_channels: non_neg_integer,
-    max_output_channels: non_neg_integer,
+    max_input_channels: integer,
+    max_output_channels: integer,
     default_low_input_latency: float,
     default_low_output_latency: float,
     default_high_input_latency: float,
@@ -92,16 +92,14 @@ defmodule PortAudio.Native do
   def device_index_from_host_api(_host_idx, _dev_idx),
     do: nif_error()
 
-  @spec default_input_device_index()
-    :: non_neg_integer | {:error, :no_default}
+  @spec default_input_device_index() :: non_neg_integer | nil
 
   @doc """
   Returns the index of the default input device used by the system.
   """
   def default_input_device_index, do: nif_error()
 
-  @spec default_output_device_index()
-    :: non_neg_integer | {:error, :no_default}
+  @spec default_output_device_index() :: non_neg_integer | nil
 
   @doc """
   Returns the index of the default output device used by the system.
