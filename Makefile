@@ -1,10 +1,11 @@
 # FIXME: use generic CC
 CC = clang
 
-SRC = c_src/portaudio_nif.c c_src/portaudio_nif/erl_interop.c c_src/portaudio_nif/pa_conversions.c
+SRC = c_src/portaudio_nif.c c_src/portaudio_nif/erl_interop.c
+SRC += c_src/portaudio_nif/pa_conversions.c c_src/portaudio_nif/pa_stream.c
 
 ERLANG_PATH = $(shell erl -eval 'io:format("~s", [lists:concat([code:root_dir(), "/erts-", erlang:system_info(version), "/include"])])' -s init stop -noshell)
-CFLAGS += -pthread -O3 -Wall -g -Ic_src -I$(ERLANG_PATH) --std=c11
+CFLAGS += -pthread -O2 -Wall -g -Ic_src -I$(ERLANG_PATH) --std=c11
 
 KERNEL_NAME := $(shell uname -s)
 

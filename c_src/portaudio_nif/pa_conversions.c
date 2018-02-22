@@ -112,10 +112,9 @@ const char *pa_error_to_char(PaError err)
   struct err_to_str *cur = &pa_errors[0];
   assert(cur != NULL); // should never happen
 
-  while(cur->str != NULL) {
-    if(cur->err == err) {
-      return cur->str;
-    }
+  while (cur->str != NULL) {
+    if (cur->err == err)
+            return cur->str;
     cur++;
   }
 
@@ -136,25 +135,23 @@ ERL_NIF_TERM pa_device_to_term(ErlNifEnv *env, PaDeviceIndex device)
 
 bool tuple_to_stream_params(ErlNifEnv *env, ERL_NIF_TERM term, PaStreamParameters **stream_params)
 {
-  if(!enif_is_tuple(env, term)) {
+  if (!enif_is_tuple(env, term))
     // Should still continue if term is nil
     return erli_is_nil(env, term);
-  }
 
   int arity, device, channel_count;
   double suggested_latency;
   const ERL_NIF_TERM *tuple;
-  if(!enif_get_tuple(env, term, &arity, &tuple)
-     || arity != 4
-     || !enif_get_int(env, tuple[0], &device)
-     || !enif_get_int(env, tuple[1], &channel_count)
-     || !enif_is_atom(env, tuple[2])
-     || !enif_get_double(env, tuple[3], &suggested_latency)
-     // FIXME: handle these seperately
-     || device < 0
-     || device >= Pa_GetDeviceCount()
-     || channel_count < 0) {
-
+  if (!enif_get_tuple(env, term, &arity, &tuple)
+      || arity != 4
+      || !enif_get_int(env, tuple[0], &device)
+      || !enif_get_int(env, tuple[1], &channel_count)
+      || !enif_is_atom(env, tuple[2])
+      || !enif_get_double(env, tuple[3], &suggested_latency)
+      // FIXME: handle these seperately
+      || device < 0
+      || device >= Pa_GetDeviceCount()
+      || channel_count < 0) {
     return false;
   }
 
@@ -162,9 +159,8 @@ bool tuple_to_stream_params(ErlNifEnv *env, ERL_NIF_TERM term, PaStreamParameter
   params->device = device;
   params->channelCount = channel_count;
 
-  if(!atom_to_sample_format(env, tuple[2], &params->sampleFormat)) {
-    return false;
-  }
+  if (!atom_to_sample_format(env, tuple[2], &params->sampleFormat))
+          return false;
 
   params->suggestedLatency = suggested_latency;
   params->hostApiSpecificStreamInfo = NULL;
@@ -178,8 +174,8 @@ bool atom_to_sample_format(ErlNifEnv *env, ERL_NIF_TERM sample_atom, PaSampleFor
   struct sample_format_to_str *cur = &pa_sample_formats[0];
   assert(cur != NULL); // should never happen
 
-  while(cur->str != NULL) {
-    if(enif_compare(sample_atom, enif_make_atom(env, cur->str)) == 0) {
+  while (cur->str != NULL) {
+    if (enif_compare(sample_atom, enif_make_atom(env, cur->str)) == 0) {
       *sample_format = cur->fmt;
       return true;
     }
@@ -194,8 +190,8 @@ bool atom_to_host_api_type_id(ErlNifEnv *env, ERL_NIF_TERM atom, PaHostApiTypeId
   struct api_type_to_str *cur = &pa_drivers[0];
   assert(cur != NULL); // should never happen
 
-  while(cur->str != NULL) {
-    if(enif_compare(enif_make_atom(env, cur->str), atom) == 0) {
+  while (cur->str != NULL) {
+    if (enif_compare(enif_make_atom(env, cur->str), atom) == 0) {
       *type_id = cur->type_id;
       return true;
     }

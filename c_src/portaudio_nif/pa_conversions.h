@@ -11,27 +11,29 @@
  */
 ERL_NIF_TERM pa_error_to_error_tuple(ErlNifEnv *env, PaError err);
 
+// FIXME: bad practice
 /**
  * Check a PortAudio return value for errors and return from
  * the calling function with an error tuple if found.
  */
-#define HANDLE_PA_ERROR(ENV, ERR_OR_IDX)                    \
-  {                                                         \
-    if((ERR_OR_IDX) < 0) {                                  \
-      return pa_error_to_error_tuple((ENV), (ERR_OR_IDX));  \
-    }                                                       \
-  }
+#define HANDLE_PA_ERROR(ENV, ERR_OR_IDX)                                \
+        do {                                                            \
+                if ((ERR_OR_IDX) < 0) {                                 \
+                        return pa_error_to_error_tuple((ENV), (ERR_OR_IDX)); \
+                }                                                       \
+        } while(0)
 
+// FIXME: bad practice
 /**
  * Check a PortAudio device index return value and return from
  * the calling function with an error tuple if found.
  */
-#define HANDLE_MISSING_DEVICE(ENV, IDX)                 \
-  {                                                     \
-    if((IDX) == paNoDevice) {                           \
-      return erli_make_nil((ENV));                      \
-    }                                                   \
-  }
+#define HANDLE_MISSING_DEVICE(ENV, IDX)                \
+        do {                                           \
+                if ((IDX) == paNoDevice) {             \
+                        return erli_make_nil((ENV));   \
+                }                                      \
+        } while(0)
 
 /**
  * Returns a PaDeviceIndex encoded as an erlang integer or if the
