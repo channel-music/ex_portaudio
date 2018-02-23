@@ -142,15 +142,22 @@ defmodule PortAudio.Native do
   def stream_format_supported(_input, _output, _sample_format),
     do: nif_error()
 
-  def stream_open_default(_n_input_channels, _n_output_channels, _sample_format, _sample_rate, _fpb) do
-    nif_error()
-  end
+  def stream_open_default(
+    _n_input_channels,
+    _n_output_channels,
+    _sample_format,
+    _sample_rate,
+    _fpb), do: nif_error()
 
   def stream_stop(_stream), do: nif_error()
 
   def stream_abort(_stream), do: nif_error()
 
   def stream_start(_stream), do: nif_error()
+
+  def stream_read(_stream), do: nif_error()
+
+  def stream_write(_stream, _data), do: nif_error()
 
   ############################################################
   # Nif utils
