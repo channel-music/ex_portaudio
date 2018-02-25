@@ -2,12 +2,12 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <math.h>
 #include <portaudio.h>
 
 #include "erl_nif.h"
 #include "portaudio_nif/erl_interop.h"
 #include "portaudio_nif/pa_conversions.h"
-#include "portaudio_nif/pa_stream.h"
 
 /**
  * Mark a parameter as unused.
@@ -311,6 +311,65 @@ static ERL_NIF_TERM portaudio_stream_open_default_nif(ErlNifEnv *env, int argc, 
                                 enif_make_resource(env, res));
 }
 
+static ERL_NIF_TERM portaudio_stream_open_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+        PaStreamParameters *input_params;
+        PaStreamParameters *output_params;
+        double sample_rate;
+        unsigned long frames_per_buffer;
+
+        if (argc != 4
+            || !tuple_to_stream_params(env, argv[0], &input_params)
+            || !tuple_to_stream_params(env, argv[1], &output_params)
+            || !enif_get_double(env, argv[2], &sample_rate)
+            || !enif_get_ulong(env, argv[3], &frames_per_buffer)) {
+                return enif_make_badarg(env);
+        }
+
+        struct erl_stream_resource *res = erl_stream_resource_alloc();
+
+        const PaError err = Pa_OpenStream(&res->stream,
+                                          input_params,
+                                          output_params,
+                                          sample_rate,
+                                          frames_per_buffer,
+                                          0, NULL, NULL);
+        HANDLE_PA_ERROR(env, err);
+
+        if (input_params != NULL) {
+                res->input_sample_size = Pa_GetSampleSize(input_params->sampleFormat);
+                res->input_frame_size =
+                        res->input_sample_size * input_params->channelCount;
+        } else {
+                res->input_sample_size = 0;
+                res->input_frame_size = 0;
+        }
+
+        if (output_params != NULL) {
+                res->output_sample_size = Pa_GetSampleSize(output_params->sampleFormat);
+                res->output_frame_size =
+                        res->output_sample_size * output_params->channelCount;
+        } else {
+                res->output_sample_size = 0;
+                res->input_frame_size = 0;
+        }
+
+        return enif_make_tuple2(env,
+                                enif_make_atom(env, "ok"),
+                                enif_make_resource(env, res));
+}
+
+static ERL_NIF_TERM portaudio_stream_start_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+        struct erl_stream_resource *res;
+
+        if (argc != 1 || !erl_stream_resource_get(env, argv[0], &res))
+                return enif_make_badarg(env);
+
+        HANDLE_PA_ERROR(env, Pa_StartStream(res->stream));
+        return enif_make_atom(env, "ok");
+}
+
 // TODO: rename and move
 static ERL_NIF_TERM portaudio_stream_stop_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
@@ -337,16 +396,28 @@ static ERL_NIF_TERM portaudio_stream_abort_nif(ErlNifEnv *env, int argc, const E
         return enif_make_atom(env, "ok");
 }
 
-
-static ERL_NIF_TERM portaudio_stream_start_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM portaudio_stream_is_active_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
         struct erl_stream_resource *res;
 
-        if (argc != 1 || !erl_stream_resource_get(env, argv[0], &res))
+        if(argc != 1 || !erl_stream_resource_get(env, argv[0], &res))
                 return enif_make_badarg(env);
 
-        HANDLE_PA_ERROR(env, Pa_StartStream(res->stream));
-        return enif_make_atom(env, "ok");
+        const PaError status = Pa_IsStreamActive(res->stream);
+        HANDLE_PA_ERROR(env, status);
+        return erli_make_bool(env, status == 1);
+}
+
+static ERL_NIF_TERM portaudio_stream_is_stopped_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+        struct erl_stream_resource *res;
+
+        if(argc != 1 || !erl_stream_resource_get(env, argv[0], &res))
+                return enif_make_badarg(env);
+
+        const PaError status = Pa_IsStreamStopped(res->stream);
+        HANDLE_PA_ERROR(env, status);
+        return erli_make_bool(env, status == 1);
 }
 
 static ERL_NIF_TERM portaudio_stream_read_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -394,18 +465,9 @@ static ERL_NIF_TERM portaudio_stream_write_nif(ErlNifEnv *env, int argc, const E
                 return enif_make_badarg(env);
         }
 
-        size_t offset = 0;
-        while (offset < input_bin.size) {
-                const long frames_available = Pa_GetStreamWriteAvailable(res->stream);
-                assert(frames_available >= 0);
-                const long bytes_available = frames_available * res->output_frame_size;
-
-                // FIXME: may overflow
-                const PaError err =
-                        Pa_WriteStream(res->stream, &input_bin.data[offset], frames_available);
-                HANDLE_PA_ERROR(env, err);
-                offset += bytes_available;
-        }
+        const long frames_to_write = input_bin.size / res->output_frame_size;
+        const PaError err = Pa_WriteStream(res->stream, input_bin.data, frames_to_write);
+        HANDLE_PA_ERROR(env, err);
         return enif_make_atom(env, "ok");
 }
 
@@ -426,9 +488,13 @@ static ErlNifFunc portaudio_nif_funcs[] = {
         // Streams
         {"stream_format_supported", 3, portaudio_stream_format_supported_nif, 0},
         {"stream_open_default",     5, portaudio_stream_open_default_nif,     0},
+        // TODO: support flags
+        {"stream_open",             4, portaudio_stream_open_nif,             0},
+        {"stream_start",            1, portaudio_stream_start_nif,            0},
         {"stream_stop",             1, portaudio_stream_stop_nif,             0},
         {"stream_abort",            1, portaudio_stream_abort_nif,            0},
-        {"stream_start",            1, portaudio_stream_start_nif,            0},
+        {"stream_is_active",        1, portaudio_stream_is_active_nif,        0},
+        {"stream_is_stopped",       1, portaudio_stream_is_stopped_nif,       0},
         {"stream_read",             1, portaudio_stream_read_nif, ERL_NIF_DIRTY_JOB_IO_BOUND},
         {"stream_write",            2, portaudio_stream_write_nif, ERL_NIF_DIRTY_JOB_IO_BOUND}
 };

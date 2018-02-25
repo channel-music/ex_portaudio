@@ -36,6 +36,12 @@ defmodule PortAudio.Native do
     default_sample_rate: float
   ]
 
+  @type sample_format :: :float32 | :int32 | :int24 | :int16 | :int8 | :uint8
+
+  @type stream_params :: {device            :: non_neg_integer,
+                          channel_count     :: non_neg_integer,
+                          sample_format     :: sample_format,
+                          suggested_latency :: float}
 
   @spec version() :: {integer, binary}
 
@@ -124,12 +130,6 @@ defmodule PortAudio.Native do
   """
   def device_info(_index), do: nif_error()
 
-  @type stream_params :: {device            :: non_neg_integer,
-                          channel_count     :: non_neg_integer,
-
-                          sample_format     :: atom,
-                          suggested_latency :: float}
-
   @spec stream_format_supported(
     input       :: stream_params,
     output      :: stream_params,
@@ -142,20 +142,59 @@ defmodule PortAudio.Native do
   def stream_format_supported(_input, _output, _sample_format),
     do: nif_error()
 
+  @spec stream_open_default(
+    input_channels    :: non_neg_integer,
+    output_channels   :: non_neg_integer,
+    sample_format     :: sample_format,
+    sample_rate       :: float,
+    frames_per_buffer :: pos_integer
+  ) :: {:ok, reference} | {:error, atom}
+
   def stream_open_default(
-    _n_input_channels,
-    _n_output_channels,
+    _input_channels,
+    _output_channels,
     _sample_format,
     _sample_rate,
     _fpb), do: nif_error()
 
+  @spec stream_open(
+    input_params      :: stream_params,
+    output_params     :: stream_params,
+    sample_rate       :: float,
+    frames_per_buffer :: pos_integer
+  ) :: {:ok, reference} | {:error, atom}
+
+  def stream_open(
+    _input_params,
+    _output_params,
+    _sample_rate,
+    _fpb), do: nif_error()
+
+  @spec stream_stop(reference) :: :ok | {:error, atom}
+
   def stream_stop(_stream), do: nif_error()
+
+  @spec stream_abort(reference) :: :ok | {:error, atom}
 
   def stream_abort(_stream), do: nif_error()
 
+  @spec stream_start(reference) :: :ok | {:error, atom}
+
   def stream_start(_stream), do: nif_error()
 
+  @spec stream_is_active(reference) :: boolean | {:error, atom}
+
+  def stream_is_active(_stream), do: nif_error()
+
+  @spec stream_is_stopped(reference) :: boolean | {:error, atom}
+
+  def stream_is_stopped(_stream), do: nif_error()
+
+  @spec stream_read(reference) :: {:ok, binary} | {:error, atom}
+
   def stream_read(_stream), do: nif_error()
+
+  @spec stream_write(reference, binary) :: :ok | {:error, atom}
 
   def stream_write(_stream, _data), do: nif_error()
 
