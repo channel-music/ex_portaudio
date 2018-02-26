@@ -8,7 +8,7 @@ defmodule PortAudio.MixProject do
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      compilers: [:elixir_make] ++ Mix.compilers(),
+      compilers: [:elixir_make] ++ Mix.compilers()
     ]
   end
 
@@ -23,7 +23,7 @@ defmodule PortAudio.MixProject do
   defp deps do
     [
       {:elixir_make, "~> 0.4", runtime: false},
-      {:dialyxir, "~> 0.5", only: :dev, runtime: false},
+      {:dialyxir, "~> 0.5", only: :dev, runtime: false}
     ]
   end
 end

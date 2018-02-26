@@ -17,32 +17,31 @@ defmodule PortAudio.Native do
   # Stubs
   ############################################################
   @type host_api_info :: [
-    name: binary,
-    type: non_neg_integer,
-    device_count: non_neg_integer,
-    default_input_device: non_neg_integer | nil,
-    default_output_device: non_neg_integer | nil
-  ]
+          name: binary,
+          type: non_neg_integer,
+          device_count: non_neg_integer,
+          default_input_device: non_neg_integer | nil,
+          default_output_device: non_neg_integer | nil
+        ]
 
   @type device_info :: [
-    name: binary,
-    host_api: non_neg_integer,
-    max_input_channels: integer,
-    max_output_channels: integer,
-    default_low_input_latency: float,
-    default_low_output_latency: float,
-    default_high_input_latency: float,
-    default_high_output_latency: float,
-    default_sample_rate: float
-  ]
+          name: binary,
+          host_api: non_neg_integer,
+          max_input_channels: integer,
+          max_output_channels: integer,
+          default_low_input_latency: float,
+          default_low_output_latency: float,
+          default_high_input_latency: float,
+          default_high_output_latency: float,
+          default_sample_rate: float
+        ]
 
   @type sample_format :: :float32 | :int32 | :int24 | :int16 | :int8 | :uint8
   @type stream_flag :: :noclip | :nodither | :nodropinput
 
-  @type stream_params :: {device            :: non_neg_integer,
-                          channel_count     :: non_neg_integer,
-                          sample_format     :: sample_format,
-                          suggested_latency :: float}
+  @type stream_params ::
+          {device :: non_neg_integer, channel_count :: non_neg_integer,
+           sample_format :: sample_format, suggested_latency :: float}
 
   @spec version() :: {integer, binary}
 
@@ -69,8 +68,7 @@ defmodule PortAudio.Native do
   """
   def host_api_info(_index), do: nif_error()
 
-  @spec host_api_index_from_type(non_neg_integer | atom)
-    :: integer | {:error, :no_host_api}
+  @spec host_api_index_from_type(non_neg_integer | atom) :: integer | {:error, :no_host_api}
 
   @doc """
   Returns a host API index value that has the given type.
@@ -87,8 +85,8 @@ defmodule PortAudio.Native do
   """
   def default_host_api_index, do: nif_error()
 
-  @spec device_index_from_host_api(non_neg_integer, non_neg_integer)
-    :: non_neg_integer | {:error, atom}
+  @spec device_index_from_host_api(non_neg_integer, non_neg_integer) ::
+          non_neg_integer | {:error, atom}
 
   @doc """
   Returns the standard device index using host API specific device
@@ -97,8 +95,7 @@ defmodule PortAudio.Native do
   Will return an error tuple if either the host API index or the
   device index doesn't exist.
   """
-  def device_index_from_host_api(_host_idx, _dev_idx),
-    do: nif_error()
+  def device_index_from_host_api(_host_idx, _dev_idx), do: nif_error()
 
   @spec default_input_device_index() :: non_neg_integer | nil
 
@@ -132,23 +129,22 @@ defmodule PortAudio.Native do
   def device_info(_index), do: nif_error()
 
   @spec stream_format_supported(
-    input       :: stream_params,
-    output      :: stream_params,
-    sample_rate :: float
-  ) :: boolean
+          input :: stream_params,
+          output :: stream_params,
+          sample_rate :: float
+        ) :: boolean
 
   @doc """
   Returns `true` if the given format is supported or `false` otherwise.
   """
-  def stream_format_supported(_input, _output, _sample_format),
-    do: nif_error()
+  def stream_format_supported(_input, _output, _sample_format), do: nif_error()
 
   @spec stream_open_default(
-    input_channels    :: non_neg_integer,
-    output_channels   :: non_neg_integer,
-    sample_format     :: sample_format,
-    sample_rate       :: float
-  ) :: {:ok, reference} | {:error, atom}
+          input_channels :: non_neg_integer,
+          output_channels :: non_neg_integer,
+          sample_format :: sample_format,
+          sample_rate :: float
+        ) :: {:ok, reference} | {:error, atom}
 
   @doc """
   Open a new stream with the default input and output devices.
@@ -156,18 +152,15 @@ defmodule PortAudio.Native do
   If input channels is set to `0` then the device will only use
   output and vice-versa when output channels are set to `0`.
   """
-  def stream_open_default(
-    _input_channels,
-    _output_channels,
-    _sample_format,
-    _sample_rate), do: nif_error()
+  def stream_open_default(_input_channels, _output_channels, _sample_format, _sample_rate),
+    do: nif_error()
 
   @spec stream_open(
-    input_params      :: stream_params,
-    output_params     :: stream_params,
-    sample_rate       :: float,
-    flags             :: [stream_flag]
-  ) :: {:ok, reference} | {:error, atom}
+          input_params :: stream_params,
+          output_params :: stream_params,
+          sample_rate :: float,
+          flags :: [stream_flag]
+        ) :: {:ok, reference} | {:error, atom}
 
   @doc """
   Open a new stream with the given input and output parameters.
@@ -176,11 +169,7 @@ defmodule PortAudio.Native do
   be used for output and vice-versa when `output_params` is `nil`.
   """
 
-  def stream_open(
-    _input_params,
-    _output_params,
-    _sample_rate,
-    _flags), do: nif_error()
+  def stream_open(_input_params, _output_params, _sample_rate, _flags), do: nif_error()
 
   @spec stream_start(reference) :: :ok | {:error, atom}
 
