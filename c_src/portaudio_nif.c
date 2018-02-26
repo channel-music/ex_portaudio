@@ -273,13 +273,11 @@ static ERL_NIF_TERM portaudio_stream_open_default_nif(ErlNifEnv *env, int argc, 
         int num_output_channels;
         PaSampleFormat sample_format;
         double sample_rate;
-        unsigned long frames_per_buffer;
-        if (argc != 5
+        if (argc != 4
             || !enif_get_int(env, argv[0], &num_input_channels)
             || !enif_get_int(env, argv[1], &num_output_channels)
             || !pa_sample_format_from_atom(env, argv[2], &sample_format)
-            || !enif_get_double(env, argv[3], &sample_rate)
-            || !enif_get_ulong(env, argv[4], &frames_per_buffer)) {
+            || !enif_get_double(env, argv[3], &sample_rate)) {
                 return enif_make_badarg(env);
         }
 
@@ -290,7 +288,7 @@ static ERL_NIF_TERM portaudio_stream_open_default_nif(ErlNifEnv *env, int argc, 
                                                  num_output_channels,
                                                  sample_format,
                                                  sample_rate,
-                                                 frames_per_buffer,
+                                                 paFramesPerBufferUnspecified,
                                                  NULL, NULL);
         if (pa_is_error(err)) {
                 enif_release_resource(res);
@@ -313,15 +311,13 @@ static ERL_NIF_TERM portaudio_stream_open_nif(ErlNifEnv *env, int argc, const ER
         PaStreamParameters *input_params;
         PaStreamParameters *output_params;
         double sample_rate;
-        unsigned long frames_per_buffer;
         PaStreamFlags stream_flags;
 
-        if (argc != 5
+        if (argc != 4
             || !pa_stream_params_from_tuple(env, argv[0], &input_params)
             || !pa_stream_params_from_tuple(env, argv[1], &output_params)
             || !enif_get_double(env, argv[2], &sample_rate)
-            || !enif_get_ulong(env, argv[3], &frames_per_buffer)
-            || !pa_stream_flags_from_list(env, argv[4], &stream_flags)) {
+            || !pa_stream_flags_from_list(env, argv[3], &stream_flags)) {
                 return enif_make_badarg(env);
         }
 
@@ -331,7 +327,7 @@ static ERL_NIF_TERM portaudio_stream_open_nif(ErlNifEnv *env, int argc, const ER
                                           input_params,
                                           output_params,
                                           sample_rate,
-                                          frames_per_buffer,
+                                          paFramesPerBufferUnspecified,
                                           stream_flags,
                                           NULL, NULL);
         if (pa_is_error(err)) {
@@ -485,8 +481,8 @@ static ErlNifFunc portaudio_nif_funcs[] = {
         {"default_output_device_index", 0, portaudio_default_output_device_index_nif, 0},
         // Streams
         {"stream_format_supported", 3, portaudio_stream_format_supported_nif, 0},
-        {"stream_open_default",     5, portaudio_stream_open_default_nif,     0},
-        {"stream_open",             5, portaudio_stream_open_nif,             0},
+        {"stream_open_default",     4, portaudio_stream_open_default_nif,     0},
+        {"stream_open",             4, portaudio_stream_open_nif,             0},
         {"stream_start",            1, portaudio_stream_start_nif,            0},
         {"stream_stop",             1, portaudio_stream_stop_nif,             0},
         {"stream_abort",            1, portaudio_stream_abort_nif,            0},

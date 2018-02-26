@@ -147,8 +147,7 @@ defmodule PortAudio.Native do
     input_channels    :: non_neg_integer,
     output_channels   :: non_neg_integer,
     sample_format     :: sample_format,
-    sample_rate       :: float,
-    frames_per_buffer :: pos_integer
+    sample_rate       :: float
   ) :: {:ok, reference} | {:error, atom}
 
   @doc """
@@ -156,21 +155,17 @@ defmodule PortAudio.Native do
 
   If input channels is set to `0` then the device will only use
   output and vice-versa when output channels are set to `0`.
-
-  The `frames_per_buffer` parameter is not used currently.
   """
   def stream_open_default(
     _input_channels,
     _output_channels,
     _sample_format,
-    _sample_rate,
-    _fpb), do: nif_error()
+    _sample_rate), do: nif_error()
 
   @spec stream_open(
     input_params      :: stream_params,
     output_params     :: stream_params,
     sample_rate       :: float,
-    frames_per_buffer :: pos_integer,
     flags             :: [stream_flag]
   ) :: {:ok, reference} | {:error, atom}
 
@@ -179,15 +174,12 @@ defmodule PortAudio.Native do
 
   If the `input_params` are specified as `nil`, the device will only
   be used for output and vice-versa when `output_params` is `nil`.
-
-  The `frames_per_buffer` parameter is not used currently.
   """
 
   def stream_open(
     _input_params,
     _output_params,
     _sample_rate,
-    _fpb,
     _flags), do: nif_error()
 
   @spec stream_start(reference) :: :ok | {:error, atom}
