@@ -11,15 +11,20 @@
  */
 ERL_NIF_TERM pa_error_to_error_tuple(ErlNifEnv *env, PaError err);
 
+/**
+ * Returns `true` if the given status indicates an error.
+ */
+bool pa_is_error(PaError status);
+
 // FIXME: bad practice
 /**
  * Check a PortAudio return value for errors and return from
  * the calling function with an error tuple if found.
  */
-#define HANDLE_PA_ERROR(ENV, ERR_OR_IDX)                                \
+#define handle_pa_error(ENV, STATUS)                                    \
         do {                                                            \
-                if ((ERR_OR_IDX) < 0) {                                 \
-                        return pa_error_to_error_tuple((ENV), (ERR_OR_IDX)); \
+                if (pa_is_error((STATUS))) {                            \
+                        return pa_error_to_error_tuple((ENV), (STATUS)); \
                 }                                                       \
         } while(0)
 
@@ -28,7 +33,7 @@ ERL_NIF_TERM pa_error_to_error_tuple(ErlNifEnv *env, PaError err);
  * Check a PortAudio device index return value and return from
  * the calling function with an error tuple if found.
  */
-#define HANDLE_MISSING_DEVICE(ENV, IDX)                \
+#define handle_missing_device(ENV, IDX)                \
         do {                                           \
                 if ((IDX) == paNoDevice) {             \
                         return erli_make_nil((ENV));   \
@@ -48,18 +53,24 @@ ERL_NIF_TERM pa_device_to_term(ErlNifEnv *env, PaDeviceIndex device);
  * that `true` may be returned without `stream_params` being initialized if
  * the passed term corresponds to an erlang `nil` value.
  */
-bool tuple_to_stream_params(ErlNifEnv *env, ERL_NIF_TERM term, PaStreamParameters **stream_params);
+bool pa_stream_params_from_tuple(ErlNifEnv *env, ERL_NIF_TERM term, PaStreamParameters **stream_params);
 
 /**
  * Convert an erlang atom to a PortAudio sample format. Returns `true` if the
  * sample format was found or `false` otherwise.
  */
-bool atom_to_sample_format(ErlNifEnv *env, ERL_NIF_TERM sample_atom, PaSampleFormat *sample_format);
+bool pa_sample_format_from_atom(ErlNifEnv *env, ERL_NIF_TERM sample_atom, PaSampleFormat *sample_format);
+
+/**
+ * Convert an erlang list to a stream flags for PortAudio. Returns `true`
+ * on success, `false` otherwise.
+ */
+bool pa_stream_flags_from_list(ErlNifEnv *env, ERL_NIF_TERM list, PaStreamFlags *flags);
 
 /**
  * Convert an erlang atom to a PortAudio host API type id. Returns `true` if the
  * type was found or `false` otherwise.
  */
-bool atom_to_host_api_type_id(ErlNifEnv *env, ERL_NIF_TERM atom, PaHostApiTypeId *type_id);
+bool pa_host_api_type_id_from_atom(ErlNifEnv *env, ERL_NIF_TERM atom, PaHostApiTypeId *type_id);
 
 #endif // _PORTAUDIO_NIF_PA_CONVERSIONS_

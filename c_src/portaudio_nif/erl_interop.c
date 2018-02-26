@@ -3,13 +3,15 @@
 #include <string.h>
 #include <assert.h>
 
+#include "util.h"
+
 #define ERL_NIL_TERM "nil"
 
 ERL_NIF_TERM erli_str_to_binary(ErlNifEnv *env, const char *str)
 {
         ERL_NIF_TERM binary;
         char *str_raw = (char *) enif_make_new_binary(env, strlen(str), &binary);
-        assert(str_raw!= NULL);
+        ensure(str_raw!= NULL);
         strcpy(str_raw, str);
         return binary;
 }

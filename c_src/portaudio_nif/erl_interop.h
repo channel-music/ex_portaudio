@@ -1,20 +1,20 @@
 #ifndef _PORTAUDIO_NIF_ERL_INTEROP_
 #define _PORTAUDIO_NIF_ERL_INTEROP_
 
-#include "erl_nif.h"
-
 #include <stdbool.h>
+
+#include "erl_nif.h"
 
 /**
  * Uses enif_free, but ensures that the value being freed is `NULL` first.
  */
-#define ENIF_SAFE_FREE(x)                       \
+#define enif_safe_free(x)                       \
         if(x != NULL) { enif_free(x); }
 
 /**
  * Make an erlang keyword list item. Represented as `{KEY, VAL}`.
  */
-#define MAKE_KW_ITEM(ENV, KEY, VAL)                                   \
+#define make_kw_item(ENV, KEY, VAL)                                   \
         enif_make_tuple2((ENV), enif_make_atom((ENV), (KEY)), (VAL))
 
 /**

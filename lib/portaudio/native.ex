@@ -37,6 +37,7 @@ defmodule PortAudio.Native do
   ]
 
   @type sample_format :: :float32 | :int32 | :int24 | :int16 | :int8 | :uint8
+  @type stream_flag :: :noclip | :nodither | :nodropinput
 
   @type stream_params :: {device            :: non_neg_integer,
                           channel_count     :: non_neg_integer,
@@ -150,6 +151,14 @@ defmodule PortAudio.Native do
     frames_per_buffer :: pos_integer
   ) :: {:ok, reference} | {:error, atom}
 
+  @doc """
+  Open a new stream with the default input and output devices.
+
+  If input channels is set to `0` then the device will only use
+  output and vice-versa when output channels are set to `0`.
+
+  The `frames_per_buffer` parameter is not used currently.
+  """
   def stream_open_default(
     _input_channels,
     _output_channels,
@@ -161,41 +170,104 @@ defmodule PortAudio.Native do
     input_params      :: stream_params,
     output_params     :: stream_params,
     sample_rate       :: float,
-    frames_per_buffer :: pos_integer
+    frames_per_buffer :: pos_integer,
+    flags             :: [stream_flag]
   ) :: {:ok, reference} | {:error, atom}
+
+  @doc """
+  Open a new stream with the given input and output parameters.
+
+  If the `input_params` are specified as `nil`, the device will only
+  be used for output and vice-versa when `output_params` is `nil`.
+
+  The `frames_per_buffer` parameter is not used currently.
+  """
 
   def stream_open(
     _input_params,
     _output_params,
     _sample_rate,
-    _fpb), do: nif_error()
+    _fpb,
+    _flags), do: nif_error()
+
+  @spec stream_start(reference) :: :ok | {:error, atom}
+
+  @doc """
+  Start the given opened stream.
+
+  Will return errors if the stream is already opened or if an exceptional
+  circumstance happens internally.
+  """
+
+  def stream_start(_stream), do: nif_error()
 
   @spec stream_stop(reference) :: :ok | {:error, atom}
+
+  @doc """
+  Gracefully stop the given stream. May not stop immediately as it waits
+  for pending audio buffers to complete.
+
+  Will return errors if the stream is already closed or if an exceptional
+  circumtance happens internally.
+  """
 
   def stream_stop(_stream), do: nif_error()
 
   @spec stream_abort(reference) :: :ok | {:error, atom}
 
+  @doc """
+  Terminate the stream immediately without waiting for pending audio
+  buffers to complete.
+
+  Will return errors if the stream is already closed or if an exceptional
+  circumtance happens internally.
+  """
   def stream_abort(_stream), do: nif_error()
 
-  @spec stream_start(reference) :: :ok | {:error, atom}
+  @spec stream_is_active(reference) :: boolean
 
-  def stream_start(_stream), do: nif_error()
-
-  @spec stream_is_active(reference) :: boolean | {:error, atom}
+  @doc """
+  Returns `true` if the given stream is active.
+  """
 
   def stream_is_active(_stream), do: nif_error()
 
-  @spec stream_is_stopped(reference) :: boolean | {:error, atom}
+  @spec stream_is_stopped(reference) :: boolean
+
+  @doc """
+  Returns `true` if the given stream is stopped. This includes streams
+  that were aborted.
+  """
 
   def stream_is_stopped(_stream), do: nif_error()
 
   @spec stream_read(reference) :: {:ok, binary} | {:error, atom}
 
+  @doc """
+  Read bytes from the given input stream.
+
+  Will return `{:error, :stream_empty}` if there is no data to be read yet.
+  `{:error, :output_only_stream}` will be returned if the device is only
+  open for output.
+
+  Other errors may be thrown by PortAudio, but they are considered
+  exceptional.
+  """
+
   def stream_read(_stream), do: nif_error()
 
   @spec stream_write(reference, binary) :: :ok | {:error, atom}
 
+  @doc """
+  Write the given data to an output stream. May block if the buffer
+  is full.
+
+  Will return `{:error, :input_only_stream}` if the device is only
+  opened for input.
+
+  Other errors may be thrown by PortAudio, but they are considered
+  exceptional.
+  """
   def stream_write(_stream, _data), do: nif_error()
 
   ############################################################

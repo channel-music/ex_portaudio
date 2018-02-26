@@ -1,8 +1,10 @@
 #include "pa_conversions.h"
-#include "erl_interop.h"
 
 #include <assert.h>
 #include <portaudio.h>
+
+#include "erl_interop.h"
+#include "util.h"
 
 /**
  * Structure for defining conversions between PortAudio errors
@@ -77,6 +79,10 @@ static struct api_type_to_str pa_drivers[] = {
         { 0, NULL } // SENTINEL
 };
 
+/**
+ * Structure for defining conversions between PortAudio sample formats
+ * and erlang atoms.
+ */
 struct sample_format_to_str {
         PaSampleFormat fmt;
         const char *str;
@@ -92,25 +98,29 @@ static struct sample_format_to_str pa_sample_formats[] = {
         { 0, NULL } // SENTINEL
 };
 
-/* struct stream_flags_to_str { */
-/*   PaStreamFlags stream_flags; */
-/*   const char *str; */
-/* }; */
+/**
+ * Structure for defining conversions between PortAudio strema flags
+ * and erlang atoms.
+ */
+struct stream_flags_to_str {
+  PaStreamFlags flags;
+  const char *str;
+};
 
-/* static struct stream_flags_to_str pa_stream_flags[] = { */
-/*   { paClipOff,        "noclip" }, */
-/*   { paDitherOff,      "nodither" }, */
-/*   { paNeverDropInput, "nodropinput" }, */
-/*   { paNoFlag, NULL } */
-/* }; */
+static struct stream_flags_to_str pa_stream_flags[] = {
+  { paClipOff,        "noclip" },
+  { paDitherOff,      "nodither" },
+  { paNeverDropInput, "nodropinput" },
+  { paNoFlag, NULL }
+};
 
 /**
  * Return an error message for the given error code.
  */
-const char *pa_error_to_char(PaError err)
+const char *_pa_error_to_char(PaError err)
 {
         struct err_to_str *cur = &pa_errors[0];
-        assert(cur != NULL); // should never happen
+        ensure(cur != NULL);
 
         while (cur->str != NULL) {
                 if (cur->err == err)
@@ -123,7 +133,12 @@ const char *pa_error_to_char(PaError err)
 
 ERL_NIF_TERM pa_error_to_error_tuple(ErlNifEnv *env, PaError err)
 {
-        return erli_make_error_tuple(env, pa_error_to_char(err));
+        return erli_make_error_tuple(env, _pa_error_to_char(err));
+}
+
+bool pa_is_error(PaError status)
+{
+        return status < 0;
 }
 
 ERL_NIF_TERM pa_device_to_term(ErlNifEnv *env, PaDeviceIndex device)
@@ -133,7 +148,7 @@ ERL_NIF_TERM pa_device_to_term(ErlNifEnv *env, PaDeviceIndex device)
                 : enif_make_uint(env, device);
 }
 
-bool tuple_to_stream_params(ErlNifEnv *env, ERL_NIF_TERM term, PaStreamParameters **stream_params)
+bool pa_stream_params_from_tuple(ErlNifEnv *env, ERL_NIF_TERM term, PaStreamParameters **stream_params)
 {
         *stream_params = NULL;
 
@@ -141,19 +156,16 @@ bool tuple_to_stream_params(ErlNifEnv *env, ERL_NIF_TERM term, PaStreamParameter
                 // Should still continue if term is nil
                 return erli_is_nil(env, term);
 
-        int arity, device, channel_count;
+        int arity;
+        unsigned int device, channel_count;
         double suggested_latency;
         const ERL_NIF_TERM *tuple;
         if (!enif_get_tuple(env, term, &arity, &tuple)
             || arity != 4
-            || !enif_get_int(env, tuple[0], &device)
-            || !enif_get_int(env, tuple[1], &channel_count)
+            || !enif_get_uint(env, tuple[0], &device)
+            || !enif_get_uint(env, tuple[1], &channel_count)
             || !enif_is_atom(env, tuple[2])
-            || !enif_get_double(env, tuple[3], &suggested_latency)
-            // FIXME: handle these seperately
-            || device < 0
-            || device >= Pa_GetDeviceCount()
-            || channel_count < 0) {
+            || !enif_get_double(env, tuple[3], &suggested_latency)) {
                 return false;
         }
 
@@ -161,7 +173,7 @@ bool tuple_to_stream_params(ErlNifEnv *env, ERL_NIF_TERM term, PaStreamParameter
         params->device = device;
         params->channelCount = channel_count;
 
-        if (!atom_to_sample_format(env, tuple[2], &params->sampleFormat))
+        if (!pa_sample_format_from_atom(env, tuple[2], &params->sampleFormat))
                 return false;
 
         params->suggestedLatency = suggested_latency;
@@ -171,10 +183,10 @@ bool tuple_to_stream_params(ErlNifEnv *env, ERL_NIF_TERM term, PaStreamParameter
         return true;
 }
 
-bool atom_to_sample_format(ErlNifEnv *env, ERL_NIF_TERM sample_atom, PaSampleFormat *sample_format)
+bool pa_sample_format_from_atom(ErlNifEnv *env, ERL_NIF_TERM sample_atom, PaSampleFormat *sample_format)
 {
         struct sample_format_to_str *cur = &pa_sample_formats[0];
-        assert(cur != NULL); // should never happen
+        ensure(cur != NULL);
 
         while (cur->str != NULL) {
                 if (enif_compare(sample_atom, enif_make_atom(env, cur->str)) == 0) {
@@ -187,10 +199,45 @@ bool atom_to_sample_format(ErlNifEnv *env, ERL_NIF_TERM sample_atom, PaSampleFor
         return false;
 }
 
-bool atom_to_host_api_type_id(ErlNifEnv *env, ERL_NIF_TERM atom, PaHostApiTypeId *type_id)
+static PaStreamFlags _atom_to_stream_flags(ErlNifEnv *env, ERL_NIF_TERM term)
+{
+        struct stream_flags_to_str *cur = &pa_stream_flags[0];
+        ensure(cur != NULL);
+
+        while (cur->str != NULL) {
+                if (enif_compare(term, enif_make_atom(env, cur->str)) == 0)
+                        return cur->flags;
+        }
+
+        return paNoFlag;
+}
+
+bool pa_stream_flags_from_list(ErlNifEnv *env, ERL_NIF_TERM list, PaStreamFlags *flags)
+{
+        unsigned int length = 0;
+        if (!enif_get_list_length(env, list, &length))
+                return false;
+
+        *flags = paNoFlag;
+
+        if(length == 0)
+                return true; // allow empty lists
+
+        ERL_NIF_TERM cell;
+        while (enif_get_list_cell(env, list, &cell, &list)) {
+                const int flag = _atom_to_stream_flags(env, cell);
+                if (flag != paNoFlag) {
+                        *flags |= flag;
+                }
+        }
+
+        return true;
+}
+
+bool pa_host_api_type_id_from_atom(ErlNifEnv *env, ERL_NIF_TERM atom, PaHostApiTypeId *type_id)
 {
         struct api_type_to_str *cur = &pa_drivers[0];
-        assert(cur != NULL); // should never happen
+        ensure(cur != NULL);
 
         while (cur->str != NULL) {
                 if (enif_compare(enif_make_atom(env, cur->str), atom) == 0) {
