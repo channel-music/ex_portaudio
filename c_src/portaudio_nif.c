@@ -189,8 +189,6 @@ static ERL_NIF_TERM portaudio_device_info_nif(ErlNifEnv *env, int argc, const ER
 // Streams
 ////////////////////////////////////////////////////////////
 
-// wrap PaStream
-
 static ErlNifResourceType *PORTAUDIO_STREAM_RESOURCE = NULL;
 
 struct erl_stream_resource {
@@ -284,7 +282,6 @@ static ERL_NIF_TERM portaudio_stream_open_default_nif(ErlNifEnv *env, int argc, 
         }
 
         struct erl_stream_resource *res = erl_stream_resource_alloc();
-
         const PaError err = Pa_OpenDefaultStream(&res->stream,
                                                  num_input_channels,
                                                  num_output_channels,
@@ -292,9 +289,11 @@ static ERL_NIF_TERM portaudio_stream_open_default_nif(ErlNifEnv *env, int argc, 
                                                  sample_rate,
                                                  paFramesPerBufferUnspecified,
                                                  NULL, NULL);
+        ERL_NIF_TERM ret;
+
         if (pa_is_error(err)) {
-                enif_release_resource(res);
-                return pa_error_to_error_tuple(env, err);
+                ret = pa_error_to_error_tuple(env, err);
+                goto cleanup;
         }
 
         res->input_sample_size = Pa_GetSampleSize(sample_format);
@@ -303,9 +302,13 @@ static ERL_NIF_TERM portaudio_stream_open_default_nif(ErlNifEnv *env, int argc, 
         res->output_sample_size = Pa_GetSampleSize(sample_format);
         res->output_frame_size = res->output_sample_size * num_output_channels;
 
-        return enif_make_tuple2(env,
-                                enif_make_atom(env, "ok"),
-                                enif_make_resource(env, res));
+        ret = enif_make_tuple2(env,
+                               enif_make_atom(env, "ok"),
+                               enif_make_resource(env, res));
+
+ cleanup:
+        enif_release_resource(res);
+        return ret;
 }
 
 static ERL_NIF_TERM portaudio_stream_open_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -324,7 +327,6 @@ static ERL_NIF_TERM portaudio_stream_open_nif(ErlNifEnv *env, int argc, const ER
         }
 
         struct erl_stream_resource *res = erl_stream_resource_alloc();
-
         const PaError err = Pa_OpenStream(&res->stream,
                                           input_params,
                                           output_params,
@@ -332,9 +334,12 @@ static ERL_NIF_TERM portaudio_stream_open_nif(ErlNifEnv *env, int argc, const ER
                                           paFramesPerBufferUnspecified,
                                           stream_flags,
                                           NULL, NULL);
+
+        ERL_NIF_TERM ret;
+
         if (pa_is_error(err)) {
-                enif_release_resource(res);
-                return pa_error_to_error_tuple(env, err);
+                ret = pa_error_to_error_tuple(env, err);
+                goto cleanup;
         }
 
         if (input_params != NULL) {
@@ -355,9 +360,14 @@ static ERL_NIF_TERM portaudio_stream_open_nif(ErlNifEnv *env, int argc, const ER
                 res->input_frame_size = 0;
         }
 
-        return enif_make_tuple2(env,
-                                enif_make_atom(env, "ok"),
-                                enif_make_resource(env, res));
+        /* enif_release_resource(res); */
+        ret = enif_make_tuple2(env,
+                               enif_make_atom(env, "ok"),
+                               enif_make_resource(env, res));
+
+ cleanup:
+        enif_release_resource(res);
+        return ret;
 }
 
 static ERL_NIF_TERM portaudio_stream_start_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -403,10 +413,8 @@ static ERL_NIF_TERM portaudio_stream_is_active_nif(ErlNifEnv *env, int argc, con
                 return enif_make_badarg(env);
 
         const PaError status = Pa_IsStreamActive(res->stream);
-
         if (status < 0)
                 return enif_raise_exception(env, enif_make_atom(env, "bad_status"));
-
         return erli_make_bool(env, status == 1);
 }
 
@@ -418,10 +426,8 @@ static ERL_NIF_TERM portaudio_stream_is_stopped_nif(ErlNifEnv *env, int argc, co
                 return enif_make_badarg(env);
 
         const PaError status = Pa_IsStreamStopped(res->stream);
-
         if (pa_is_error(status))
                 return enif_raise_exception(env, enif_make_atom(env, "bad_status"));
-
         return erli_make_bool(env, status == 1);
 }
 

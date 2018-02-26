@@ -162,4 +162,14 @@ defmodule PortAudio.NativeTest do
   # describe "stream_format_supported/3" do
 
   # end
+
+  describe "garbage collection" do
+    test "resources released properly" do
+      spawn(fn ->
+        {:ok, s} = PortAudio.Native.stream_open_default(0, 2, :int16, 44100.0)
+        PortAudio.Native.stream_start(s)
+      end)
+      # Garbage collected here
+    end
+  end
 end

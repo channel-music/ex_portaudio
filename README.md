@@ -1,4 +1,4 @@
-# ex_portaudio
+# Elixir PortAudio
 
 PortAudio bindings for elixir.
 
@@ -21,9 +21,16 @@ def deps do
 end
 ```
 
-## TODO
+## Examples
 
-- Ensure that stream resources are properly deallocated
+Check the [examples](examples) directory for a set of examples on recording audio
+and playing raw audio files.  
+
+To play the demo song run:
+
+```
+$ mix run --no-halt examples/play_song.exs examples/song.raw
+```
 
 ## License
 
