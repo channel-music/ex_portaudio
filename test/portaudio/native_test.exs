@@ -40,6 +40,7 @@ defmodule PortAudio.NativeTest do
         |> Native.host_api_info()
 
       expected_fields = [
+        :index,
         :name,
         :type,
         :device_count,
@@ -137,6 +138,7 @@ defmodule PortAudio.NativeTest do
         |> Native.device_info()
 
       expected_fields = [
+        :index,
         :name,
         :host_api,
         :max_input_channels,

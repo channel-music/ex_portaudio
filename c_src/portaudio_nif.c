@@ -53,13 +53,13 @@ static ERL_NIF_TERM portaudio_device_index_from_host_api_nif(ErlNifEnv *env, int
 
 static ERL_NIF_TERM portaudio_host_api_info_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-        PaHostApiIndex index;
+        PaHostApiIndex i;
         // TODO: should be unsigned
-        if (argc != 1 || !enif_get_int(env, argv[0], &index)) {
+        if (argc != 1 || !enif_get_int(env, argv[0], &i)) {
                 return enif_make_badarg(env);
         }
 
-        const PaHostApiInfo *info = Pa_GetHostApiInfo(index);
+        const PaHostApiInfo *info = Pa_GetHostApiInfo(i);
         if (info == NULL) {
                 return erli_make_nil(env);
         }
@@ -67,8 +67,9 @@ static ERL_NIF_TERM portaudio_host_api_info_nif(ErlNifEnv *env, int argc, const 
         // Exceptional case
         handle_pa_error(env, info->deviceCount);
 
-#define N_FIELDS 5
+#define N_FIELDS 6
         const ERL_NIF_TERM fields[N_FIELDS] = {
+                make_kw_item(env, "index", enif_make_int(env, i)),
                 make_kw_item(env, "type", enif_make_int(env, info->type)),
                 make_kw_item(env, "name", erli_str_to_binary(env, info->name)),
                 make_kw_item(env, "device_count", enif_make_uint(env, info->deviceCount)),
@@ -153,8 +154,9 @@ static ERL_NIF_TERM portaudio_device_info_nif(ErlNifEnv *env, int argc, const ER
                 return erli_make_nil(env);
         }
 
-#define N_FIELDS 9
+#define N_FIELDS 10
         const ERL_NIF_TERM fields[N_FIELDS] = {
+                make_kw_item(env, "index", enif_make_int(env, i)),
                 make_kw_item(env, "name",
                              erli_str_to_binary(env, device_info->name)),
                 make_kw_item(env, "host_api",

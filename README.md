@@ -23,7 +23,6 @@ end
 
 ## TODO
 
-- Add index to the response of devices and host API's
 - Ensure that stream resources are properly deallocated
 
 ## License

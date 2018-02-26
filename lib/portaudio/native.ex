@@ -17,6 +17,7 @@ defmodule PortAudio.Native do
   # Stubs
   ############################################################
   @type host_api_info :: [
+          index: non_neg_integer,
           name: binary,
           type: non_neg_integer,
           device_count: non_neg_integer,
@@ -25,6 +26,7 @@ defmodule PortAudio.Native do
         ]
 
   @type device_info :: [
+          index: non_neg_integer,
           name: binary,
           host_api: non_neg_integer,
           max_input_channels: integer,
