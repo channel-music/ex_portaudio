@@ -21,6 +21,11 @@ def deps do
 end
 ```
 
+## TODO
+
+- Add index to the response of devices and host API's
+- Ensure that stream resources are properly deallocated
+
 ## License
 
 This project is licensed under BSDv3 to Antonis Kalou.  
