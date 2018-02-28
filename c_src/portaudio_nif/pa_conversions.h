@@ -7,38 +7,16 @@
 #include "erl_nif.h"
 
 /**
- * Turn a PortAudio call into an error if there is one.
- */
-ERL_NIF_TERM pa_error_to_error_tuple(ErlNifEnv *env, PaError err);
-
-/**
  * Returns `true` if the given status indicates an error.
  */
 bool pa_is_error(PaError status);
 
-// FIXME: bad practice
 /**
- * Check a PortAudio return value for errors and return from
- * the calling function with an error tuple if found.
+ * Turn a PortAudio call into an error if there is one.
  */
-#define handle_pa_error(ENV, STATUS)                                    \
-        do {                                                            \
-                if (pa_is_error((STATUS))) {                            \
-                        return pa_error_to_error_tuple((ENV), (STATUS)); \
-                }                                                       \
-        } while(0)
+ERL_NIF_TERM pa_error_to_error_tuple(ErlNifEnv *env, PaError err);
 
-// FIXME: bad practice
-/**
- * Check a PortAudio device index return value and return from
- * the calling function with an error tuple if found.
- */
-#define handle_missing_device(ENV, IDX)                \
-        do {                                           \
-                if ((IDX) == paNoDevice) {             \
-                        return erli_make_nil((ENV));   \
-                }                                      \
-        } while(0)
+ERL_NIF_TERM pa_error_to_exception(ErlNifEnv *env, PaError err);
 
 /**
  * Returns a PaDeviceIndex encoded as an erlang integer or if the
@@ -72,5 +50,29 @@ bool pa_stream_flags_from_list(ErlNifEnv *env, ERL_NIF_TERM list, PaStreamFlags 
  * type was found or `false` otherwise.
  */
 bool pa_host_api_type_id_from_atom(ErlNifEnv *env, ERL_NIF_TERM atom, PaHostApiTypeId *type_id);
+
+// FIXME: bad practice
+/**
+ * Check a PortAudio return value for errors and return from
+ * the calling function with an error tuple if found.
+ */
+#define handle_pa_error(ENV, STATUS)                                    \
+        do {                                                            \
+                if (pa_is_error((STATUS))) {                            \
+                        return pa_error_to_error_tuple((ENV), (STATUS)); \
+                }                                                       \
+        } while(0)
+
+// FIXME: bad practice
+/**
+ * Check a PortAudio device index return value and return from
+ * the calling function with an error tuple if found.
+ */
+#define handle_missing_device(ENV, IDX)                                 \
+        do {                                                            \
+                if ((IDX) == paNoDevice) {                              \
+                        return erli_make_error_tuple((ENV), "no_device");  \
+                }                                                       \
+        } while(0)
 
 #endif // _PORTAUDIO_NIF_PA_CONVERSIONS_

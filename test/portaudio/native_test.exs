@@ -19,7 +19,7 @@ defmodule PortAudio.NativeTest do
 
   describe "default_host_api_index/0" do
     test "returns the default host API index" do
-      index = Native.default_host_api_index()
+      {:ok, index} = Native.default_host_api_index()
       assert is_integer(index)
       assert index >= 0 && Native.host_api_count()
     end
@@ -35,9 +35,10 @@ defmodule PortAudio.NativeTest do
 
   describe "host_api_info/1" do
     test "returns a keyword list" do
-      info =
-        Native.default_host_api_index()
-        |> Native.host_api_info()
+      {:ok, info} =
+        with {:ok, idx} <- Native.default_host_api_index() do
+          Native.host_api_info(idx)
+        end
 
       expected_fields = [
         :index,
@@ -51,34 +52,30 @@ defmodule PortAudio.NativeTest do
       for f <- expected_fields, do: assert(info[f])
     end
 
-    test "returns nil when host is not found" do
-      info =
-        (Native.host_api_count() + 1)
-        |> Native.host_api_info()
-
-      assert info == nil
+    test "returns an error when host is not found" do
+      assert {:error, :not_found} = Native.host_api_info(Native.host_api_count() + 1)
     end
   end
 
   describe "device_index_from_host_api/2" do
     test "returns the device index when parameters are valid" do
-      host_index = Native.default_host_api_index()
-      host_info = Native.host_api_info(host_index)
+      {:ok, host_index} = Native.default_host_api_index()
+      {:ok, host_info} = Native.host_api_info(host_index)
       device_index = host_info[:default_input_device]
 
-      index = Native.device_index_from_host_api(host_index, device_index)
+      {:ok, index} = Native.device_index_from_host_api(host_index, device_index)
       assert is_integer(index)
       assert index >= 0 && index < Native.device_count()
     end
 
     test "returns an error with an invalid host index" do
-      host_index = Native.host_api_count() + 1
+      host_index = with {:ok, n} <- Native.host_api_count(), do: n + 1
 
       assert {:error, :invalid_host_api} = Native.device_index_from_host_api(host_index, 8)
     end
 
     test "returns an error with an invalid device index" do
-      host_index = Native.default_host_api_index()
+      {:ok, host_index} = Native.default_host_api_index()
       device_index = 10_000
 
       assert {:error, :invalid_device} =
@@ -89,18 +86,18 @@ defmodule PortAudio.NativeTest do
   describe "host_api_index_from_type/1" do
     # FIXME: this assumes these types exist
     test "returns an index when given a correct type as an atom" do
-      assert is_integer(Native.host_api_index_from_type(:alsa))
+      assert {:ok, _} = Native.host_api_index_from_type(:alsa)
     end
 
     test "returns an index when given a correct type as an integer" do
-      host_info =
-        Native.default_host_api_index()
-        |> Native.host_api_info()
+      {:ok, host_info} =
+        with {:ok, idx} <- Native.default_host_api_index() do
+          Native.host_api_info(idx)
+        end
 
-      api_index = Native.host_api_index_from_type(host_info[:type])
-      assert is_integer(api_index)
-
-      assert Native.host_api_info(api_index) == host_info
+      {:ok, api_index} = Native.host_api_index_from_type(host_info[:type])
+      {:ok, api_info} = Native.host_api_info(api_index)
+      assert api_info == host_info
     end
 
     test "returns an error when given an invalid type ID" do
@@ -110,8 +107,12 @@ defmodule PortAudio.NativeTest do
   end
 
   describe "default_input_device_index/0" do
-    def valid_index?(index) do
+    def valid_index?({:ok, index}) do
       index >= 0 && index < Native.device_count()
+    end
+
+    def valid_index?(_) do
+      false
     end
 
     test "returns the index of the default input device" do
@@ -127,15 +128,17 @@ defmodule PortAudio.NativeTest do
 
   describe "device_count/0" do
     test "returns the total number of devices" do
-      assert Native.device_count() >= 0
+      n = Native.device_count()
+      assert n >= 0
     end
   end
 
   describe "device_info/1" do
     test "returns a keyword list when device is found" do
-      info =
-        Native.default_input_device_index()
-        |> Native.device_info()
+      {:ok, info} =
+        with {:ok, idx} <- Native.default_input_device_index() do
+          Native.device_info(idx)
+        end
 
       expected_fields = [
         :index,
@@ -154,7 +157,7 @@ defmodule PortAudio.NativeTest do
     end
 
     test "returns nil when device doesn't exist" do
-      assert Native.device_info(10_000) == nil
+      assert Native.device_info(10_000)
     end
   end
 
@@ -169,6 +172,7 @@ defmodule PortAudio.NativeTest do
         {:ok, s} = PortAudio.Native.stream_open_default(0, 2, :int16, 44100.0)
         PortAudio.Native.stream_start(s)
       end)
+
       # Garbage collected here
     end
   end

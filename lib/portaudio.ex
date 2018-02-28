@@ -6,22 +6,21 @@ defmodule PortAudio do
   """
   def devices do
     for device_idx <- 0..(Native.device_count() - 1) do
-      # TODO: check for nil
-      Native.device_info(device_idx)
+      # Should never fail
+      {:ok, device} = Native.device_info(device_idx)
+      device
     end
   end
 
   def default_input_device do
-    case Native.default_input_device_index() do
-      {:error, reason} -> {:error, reason}
-      idx -> Native.device_info(idx)
+    with {:ok, idx} <- Native.default_input_device_index() do
+      Native.device_info(idx)
     end
   end
 
   def default_output_device do
-    case Native.default_output_device_index() do
-      {:error, reason} -> {:error, reason}
-      idx -> Native.device_info(idx)
+    with {:ok, idx} <- Native.default_output_device_index() do
+      Native.device_info(idx)
     end
   end
 
@@ -30,21 +29,21 @@ defmodule PortAudio do
   """
   def host_apis do
     for host_idx <- 0..(Native.host_api_count() - 1) do
-      Native.host_api_info(host_idx)
+      # Should never fail
+      {:ok, host} = Native.host_api_info(host_idx)
+      host
     end
   end
 
   def default_host_api do
-    case Native.default_host_api_index() do
-      {:error, reason} -> {:error, reason}
-      idx -> Native.host_api_info(idx)
+    with {:ok, idx} <- Native.default_host_api_index() do
+      Native.host_api_info(idx)
     end
   end
 
-  def host_apis_from_type(type) do
-    case Native.host_api_from_type(type) do
-      nil -> {:error, :not_found}
-      idx -> Native.host_api_info(idx)
+  def host_api_from_type(type) do
+    with {:ok, idx} <- Native.host_api_index_from_type(type) do
+      Native.host_api_info(idx)
     end
   end
 end

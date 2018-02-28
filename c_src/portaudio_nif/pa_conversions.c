@@ -141,6 +141,14 @@ bool pa_is_error(PaError status)
         return status < 0;
 }
 
+ERL_NIF_TERM pa_error_to_exception(ErlNifEnv *env, PaError err)
+{
+        assert(pa_is_error(err));
+
+        ERL_NIF_TERM err_term = enif_make_atom(env, _pa_error_to_char(err));
+        return enif_raise_exception(env, err_term);
+}
+
 ERL_NIF_TERM pa_device_to_term(ErlNifEnv *env, PaDeviceIndex device)
 {
         return device == paNoDevice

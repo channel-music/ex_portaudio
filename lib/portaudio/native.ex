@@ -61,16 +61,17 @@ defmodule PortAudio.Native do
   """
   def host_api_count, do: nif_error()
 
-  @spec host_api_info(non_neg_integer) :: host_api_info | nil
+  @spec host_api_info(non_neg_integer) :: {:ok, host_api_info} | {:error, atom}
 
   @doc """
   Returns the details of the host API at the given index.
 
-  Will return an error if not found.
+  Will return `{:error, :not_found}` if not found.
   """
   def host_api_info(_index), do: nif_error()
 
-  @spec host_api_index_from_type(non_neg_integer | atom) :: integer | {:error, :no_host_api}
+  @spec host_api_index_from_type(non_neg_integer | atom) ::
+          {:ok, integer} | {:error, :no_host_api}
 
   @doc """
   Returns a host API index value that has the given type.
@@ -80,7 +81,7 @@ defmodule PortAudio.Native do
   """
   def host_api_index_from_type(_type), do: nif_error()
 
-  @spec default_host_api_index() :: non_neg_integer | {:error, atom}
+  @spec default_host_api_index() :: {:ok, non_neg_integer} | {:error, atom}
 
   @doc """
   Returns the default host API used by the system.
@@ -88,7 +89,7 @@ defmodule PortAudio.Native do
   def default_host_api_index, do: nif_error()
 
   @spec device_index_from_host_api(non_neg_integer, non_neg_integer) ::
-          non_neg_integer | {:error, atom}
+          {:ok, non_neg_integer} | {:error, atom}
 
   @doc """
   Returns the standard device index using host API specific device
@@ -99,21 +100,21 @@ defmodule PortAudio.Native do
   """
   def device_index_from_host_api(_host_idx, _dev_idx), do: nif_error()
 
-  @spec default_input_device_index() :: non_neg_integer | nil
+  @spec default_input_device_index() :: {:ok, non_neg_integer} | {:error, atom}
 
   @doc """
   Returns the index of the default input device used by the system.
   """
   def default_input_device_index, do: nif_error()
 
-  @spec default_output_device_index() :: non_neg_integer | nil
+  @spec default_output_device_index() :: {:ok, non_neg_integer} | {:error, atom}
 
   @doc """
   Returns the index of the default output device used by the system.
   """
   def default_output_device_index, do: nif_error()
 
-  @spec device_count() :: non_neg_integer | {:error, atom}
+  @spec device_count() :: non_neg_integer
 
   @doc """
   Returns the total number of audio devices available on the system.
@@ -122,7 +123,7 @@ defmodule PortAudio.Native do
   """
   def device_count, do: nif_error()
 
-  @spec device_info(non_neg_integer) :: device_info | nil
+  @spec device_info(non_neg_integer) :: {:ok, device_info} | {:error, atom}
 
   @doc """
   Returns information about a device at the given index or `nil` if

@@ -39,3 +39,8 @@ ERL_NIF_TERM erli_make_error_tuple(ErlNifEnv *env, const char *type)
                                 enif_make_atom(env, "error"),
                                 enif_make_atom(env, type));
 }
+
+ERL_NIF_TERM erli_make_ok_tuple(ErlNifEnv *env, const ERL_NIF_TERM term)
+{
+        return enif_make_tuple2(env, enif_make_atom(env, "ok"), term);
+}

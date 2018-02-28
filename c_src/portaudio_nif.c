@@ -27,9 +27,9 @@ static ERL_NIF_TERM portaudio_default_host_api_index_nif(ErlNifEnv *env, int arg
 {
         unused(argc); unused(argv);
 
-        PaHostApiIndex host_api_index = Pa_GetDefaultHostApi();
-        handle_pa_error(env, host_api_index);
-        return enif_make_uint(env, host_api_index);
+        PaHostApiIndex idx = Pa_GetDefaultHostApi();
+        handle_pa_error(env, idx);
+        return erli_make_ok_tuple(env, enif_make_uint(env, idx));
 }
 
 static ERL_NIF_TERM portaudio_device_index_from_host_api_nif(ErlNifEnv *env, int argc,
@@ -48,7 +48,7 @@ static ERL_NIF_TERM portaudio_device_index_from_host_api_nif(ErlNifEnv *env, int
                                                    host_api_device_index);
 
         handle_pa_error(env, device_index);
-        return enif_make_uint(env, device_index);
+        return erli_make_ok_tuple(env, enif_make_uint(env, device_index));
 }
 
 static ERL_NIF_TERM portaudio_host_api_info_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -60,12 +60,12 @@ static ERL_NIF_TERM portaudio_host_api_info_nif(ErlNifEnv *env, int argc, const 
         }
 
         const PaHostApiInfo *info = Pa_GetHostApiInfo(i);
-        if (info == NULL) {
-                return erli_make_nil(env);
-        }
+        if (info == NULL)
+                return erli_make_error_tuple(env, "not_found");
 
         // Exceptional case
-        handle_pa_error(env, info->deviceCount);
+        if (pa_is_error(info->deviceCount))
+                return pa_error_to_exception(env, info->deviceCount);
 
 #define N_FIELDS 6
         const ERL_NIF_TERM fields[N_FIELDS] = {
@@ -79,7 +79,8 @@ static ERL_NIF_TERM portaudio_host_api_info_nif(ErlNifEnv *env, int argc, const 
                              pa_device_to_term(env, info->defaultOutputDevice))
         };
 
-        return enif_make_list_from_array(env, fields, N_FIELDS);
+        const ERL_NIF_TERM ret = enif_make_list_from_array(env, fields, N_FIELDS);
+        return erli_make_ok_tuple(env, ret);
 #undef N_FIELDS
 }
 
@@ -100,16 +101,18 @@ static ERL_NIF_TERM portaudio_host_api_index_from_type_nif(ErlNifEnv *env, int a
 
         PaHostApiIndex host_api_index = Pa_HostApiTypeIdToHostApiIndex(type);
         handle_pa_error(env, host_api_index);
-        return enif_make_uint(env, host_api_index);
+        return erli_make_ok_tuple(env, enif_make_uint(env, host_api_index));
 }
 
 static ERL_NIF_TERM portaudio_host_api_count_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
         unused(argc); unused(argv);
 
-        PaHostApiIndex host_api_index = Pa_GetHostApiCount();
-        handle_pa_error(env, host_api_index);
-        return enif_make_uint(env, Pa_GetHostApiCount());
+        PaError count = Pa_GetHostApiCount();
+        if (pa_is_error(count))
+                return pa_error_to_exception(env, count);
+
+        return enif_make_uint(env, count);
 }
 
 ////////////////////////////////////////////////////////////
@@ -119,44 +122,44 @@ static ERL_NIF_TERM portaudio_default_input_device_index_nif(ErlNifEnv *env, int
 {
         unused(argc); unused(argv);
 
-        PaDeviceIndex device_index = Pa_GetDefaultInputDevice();
-        handle_missing_device(env, device_index);
-        return enif_make_uint(env, device_index);
+        PaDeviceIndex idx = Pa_GetDefaultInputDevice();
+        handle_missing_device(env, idx);
+        return erli_make_ok_tuple(env, enif_make_uint(env, idx));
 }
 
 static ERL_NIF_TERM portaudio_default_output_device_index_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
         unused(argc); unused(argv);
 
-        PaDeviceIndex device_index = Pa_GetDefaultOutputDevice();
-        handle_missing_device(env, device_index);
-        return enif_make_uint(env, device_index);
+        PaDeviceIndex idx = Pa_GetDefaultOutputDevice();
+        handle_missing_device(env, idx);
+        return erli_make_ok_tuple(env, enif_make_uint(env, idx));
 }
 
 static ERL_NIF_TERM portaudio_device_count_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
         unused(argc); unused(argv);
 
-        int num_devices = Pa_GetDeviceCount();
-        handle_pa_error(env, num_devices);
-        return enif_make_uint(env, num_devices);
+        PaError count = Pa_GetDeviceCount();
+        if (pa_is_error(count))
+                return pa_error_to_exception(env, count);
+        return enif_make_uint(env, count);
 }
 
 static ERL_NIF_TERM portaudio_device_info_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-        int i;
-        if (argc != 1 || !enif_get_int(env, argv[0], &i)) {
+        int idx;
+        if (argc != 1 || !enif_get_int(env, argv[0], &idx)) {
                 return enif_make_badarg(env);
         }
 
-        const PaDeviceInfo *device_info = Pa_GetDeviceInfo(i);
-        if (device_info == NULL) {
-                return erli_make_nil(env);
-        }
+        const PaDeviceInfo *device_info = Pa_GetDeviceInfo(idx);
+        if (device_info == NULL)
+                return erli_make_error_tuple(env, "not_found");
 
 #define N_FIELDS 10
         const ERL_NIF_TERM fields[N_FIELDS] = {
-                make_kw_item(env, "index", enif_make_int(env, i)),
+                make_kw_item(env, "index", enif_make_int(env, idx)),
                 make_kw_item(env, "name",
                              erli_str_to_binary(env, device_info->name)),
                 make_kw_item(env, "host_api",
@@ -181,7 +184,8 @@ static ERL_NIF_TERM portaudio_device_info_nif(ErlNifEnv *env, int argc, const ER
                              enif_make_double(env, device_info->defaultSampleRate))
         };
 
-        return enif_make_list_from_array(env, fields, N_FIELDS);
+        const ERL_NIF_TERM ret = enif_make_list_from_array(env, fields, N_FIELDS);
+        return erli_make_ok_tuple(env, ret);
 #undef N_FIELDS
 }
 
@@ -206,6 +210,7 @@ static struct erl_stream_resource *erl_stream_resource_alloc(void)
         struct erl_stream_resource *handle;
         handle = enif_alloc_resource(PORTAUDIO_STREAM_RESOURCE,
                                      sizeof(*handle));
+        ensure(handle != NULL);
         handle->stream = NULL;
         return handle;
 }
@@ -215,7 +220,7 @@ static void erl_stream_resource_release(ErlNifEnv *env, void *data)
         unused(env);
 
         struct erl_stream_resource *res = (struct erl_stream_resource *) data;
-        ensure(res != NULL);
+        assert(res != NULL);
 
         if(res->stream && Pa_IsStreamActive(res->stream))
                 Pa_StopStream(res->stream);
@@ -511,7 +516,6 @@ static int on_load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
         const PaError err = Pa_Initialize();
         if (err != paNoError)
                 return err;
-
 
         return 0;
 }

@@ -44,4 +44,9 @@ ERL_NIF_TERM erli_make_bool(ErlNifEnv *env, bool val);
  */
 ERL_NIF_TERM erli_make_error_tuple(ErlNifEnv *env, const char *type);
 
+/**
+ * Create an OK (success) tuple containing `{:ok, term}`.
+ */
+ERL_NIF_TERM erli_make_ok_tuple(ErlNifEnv *env, const ERL_NIF_TERM term);
+
 #endif // _PORTAUDIO_NIF_ERL_INTEROP_
