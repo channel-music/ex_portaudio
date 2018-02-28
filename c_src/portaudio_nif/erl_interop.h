@@ -49,4 +49,9 @@ ERL_NIF_TERM erli_make_error_tuple(ErlNifEnv *env, const char *type);
  */
 ERL_NIF_TERM erli_make_ok_tuple(ErlNifEnv *env, const ERL_NIF_TERM term);
 
+/**
+ * Make a map using an array of 2 element tuples.
+ */
+ERL_NIF_TERM erli_make_map_from_array(ErlNifEnv *env, const ERL_NIF_TERM fields[], const size_t len);
+
 #endif // _PORTAUDIO_NIF_ERL_INTEROP_

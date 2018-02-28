@@ -16,16 +16,16 @@ defmodule PortAudio.Native do
   ############################################################
   # Stubs
   ############################################################
-  @type host_api_info :: [
+  @type host_api_info :: %{
           index: non_neg_integer,
           name: binary,
           type: non_neg_integer,
           device_count: non_neg_integer,
           default_input_device: non_neg_integer | nil,
           default_output_device: non_neg_integer | nil
-        ]
+        }
 
-  @type device_info :: [
+  @type device_info :: %{
           index: non_neg_integer,
           name: binary,
           host_api: non_neg_integer,
@@ -36,7 +36,7 @@ defmodule PortAudio.Native do
           default_high_input_latency: float,
           default_high_output_latency: float,
           default_sample_rate: float
-        ]
+        }
 
   @type sample_format :: :float32 | :int32 | :int24 | :int16 | :int8 | :uint8
   @type stream_flag :: :noclip | :nodither | :nodropinput

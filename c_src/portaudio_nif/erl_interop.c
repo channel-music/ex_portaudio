@@ -44,3 +44,23 @@ ERL_NIF_TERM erli_make_ok_tuple(ErlNifEnv *env, const ERL_NIF_TERM term)
 {
         return enif_make_tuple2(env, enif_make_atom(env, "ok"), term);
 }
+
+ERL_NIF_TERM erli_make_map_from_array(ErlNifEnv *env, const ERL_NIF_TERM fields[], const size_t len)
+{
+        ERL_NIF_TERM map = enif_make_new_map(env);
+
+        size_t i;
+        for (i = 0; i < len; i++) {
+                const ERL_NIF_TERM field = fields[i];
+                const ERL_NIF_TERM *elems;
+                int arity;
+
+                enif_get_tuple(env, field, &arity, &elems);
+                assert(arity == 2);
+
+                int ret = enif_make_map_put(env, map, elems[0], elems[1], &map);
+                assert(ret == true);
+        }
+
+        return map;
+}

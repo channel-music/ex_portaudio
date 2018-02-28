@@ -79,7 +79,7 @@ static ERL_NIF_TERM portaudio_host_api_info_nif(ErlNifEnv *env, int argc, const 
                              pa_device_to_term(env, info->defaultOutputDevice))
         };
 
-        const ERL_NIF_TERM ret = enif_make_list_from_array(env, fields, N_FIELDS);
+        const ERL_NIF_TERM ret = erli_make_map_from_array(env, fields, N_FIELDS);
         return erli_make_ok_tuple(env, ret);
 #undef N_FIELDS
 }
@@ -184,7 +184,7 @@ static ERL_NIF_TERM portaudio_device_info_nif(ErlNifEnv *env, int argc, const ER
                              enif_make_double(env, device_info->defaultSampleRate))
         };
 
-        const ERL_NIF_TERM ret = enif_make_list_from_array(env, fields, N_FIELDS);
+        const ERL_NIF_TERM ret = erli_make_map_from_array(env, fields, N_FIELDS);
         return erli_make_ok_tuple(env, ret);
 #undef N_FIELDS
 }
