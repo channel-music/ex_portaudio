@@ -443,12 +443,16 @@ static ERL_NIF_TERM portaudio_stream_read_nif(ErlNifEnv *env, int argc, const ER
         if (argc != 1 || !erl_stream_resource_get(env, argv[0], &res))
                 return enif_make_badarg(env);
 
-        const long frames_available = Pa_GetStreamReadAvailable(res->stream);
+        // Ensure we're not reading from an output-only stream
+        const PaStreamInfo *stream_info = Pa_GetStreamInfo(res->stream);
+        assert(stream_info != NULL);
+        if (stream_info->inputLatency == 0)
+                return pa_error_to_error_tuple(env, paCanNotReadFromAnOutputOnlyStream);
 
+        const long frames_available = Pa_GetStreamReadAvailable(res->stream);
         assert(frames_available >= 0);
-        if (frames_available == 0) {
+        if (frames_available == 0)
                 return erli_make_error_tuple(env, "stream_empty");
-        }
 
         const long bytes_available = frames_available * res->input_frame_size;
         assert(bytes_available >= 0);
@@ -472,6 +476,12 @@ static ERL_NIF_TERM portaudio_stream_write_nif(ErlNifEnv *env, int argc, const E
             || !enif_inspect_iolist_as_binary(env, argv[1], &input_bin)) {
                 return enif_make_badarg(env);
         }
+
+        // Ensure we're not writing to an input-only stream
+        const PaStreamInfo *stream_info = Pa_GetStreamInfo(res->stream);
+        assert(stream_info != NULL);
+        if (stream_info->outputLatency == 0)
+                return pa_error_to_error_tuple(env, paCanNotWriteToAnInputOnlyStream);
 
         const long frames_to_write = input_bin.size / res->output_frame_size;
         const PaError err = Pa_WriteStream(res->stream, input_bin.data, frames_to_write);
