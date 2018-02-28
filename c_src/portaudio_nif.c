@@ -449,8 +449,13 @@ static ERL_NIF_TERM portaudio_stream_read_nif(ErlNifEnv *env, int argc, const ER
         if (stream_info->inputLatency == 0)
                 return pa_error_to_error_tuple(env, paCanNotReadFromAnOutputOnlyStream);
 
+        // For some reason PA doesn't return an error message when the stream
+        // is not initialized and we try and read from it.
+        if (!Pa_IsStreamActive(res->stream))
+                return pa_error_to_error_tuple(env, paStreamIsStopped);
+
         const long frames_available = Pa_GetStreamReadAvailable(res->stream);
-        assert(frames_available >= 0);
+        handle_pa_error(env, frames_available);
         if (frames_available == 0)
                 return erli_make_error_tuple(env, "stream_empty");
 
