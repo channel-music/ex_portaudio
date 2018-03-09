@@ -142,29 +142,6 @@ defmodule PortAudio.Native do
   """
   def stream_format_supported(_input, _output, _sample_format), do: nif_error()
 
-  @spec stream_open_default(
-          input_channels :: non_neg_integer,
-          output_channels :: non_neg_integer,
-          sample_format :: sample_format,
-          sample_rate :: float
-        ) :: {:ok, reference} | {:error, atom}
-
-  @doc """
-  Open a new stream with the default input and output devices.
-
-  If input channels is set to `0` then the device will only use
-  output and vice-versa when output channels are set to `0`.
-  """
-  def stream_open_default(_input_channels, _output_channels, _sample_format, _sample_rate),
-    do: nif_error()
-
-  @spec stream_open(
-          input_params :: stream_params,
-          output_params :: stream_params,
-          sample_rate :: float,
-          flags :: [stream_flag]
-        ) :: {:ok, reference} | {:error, atom}
-
   @doc """
   Open a new stream with the given input and output parameters.
 

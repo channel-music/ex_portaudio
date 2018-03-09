@@ -272,50 +272,6 @@ static ERL_NIF_TERM portaudio_stream_format_supported_nif(ErlNifEnv *env, int ar
         return erli_make_bool(env, err == paFormatIsSupported);
 }
 
-static ERL_NIF_TERM portaudio_stream_open_default_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
-{
-        int num_input_channels;
-        int num_output_channels;
-        PaSampleFormat sample_format;
-        double sample_rate;
-        if (argc != 4
-            || !enif_get_int(env, argv[0], &num_input_channels)
-            || !enif_get_int(env, argv[1], &num_output_channels)
-            || !pa_sample_format_from_atom(env, argv[2], &sample_format)
-            || !enif_get_double(env, argv[3], &sample_rate)) {
-                return enif_make_badarg(env);
-        }
-
-        struct erl_stream_resource *res = erl_stream_resource_alloc();
-        const PaError err = Pa_OpenDefaultStream(&res->stream,
-                                                 num_input_channels,
-                                                 num_output_channels,
-                                                 sample_format,
-                                                 sample_rate,
-                                                 paFramesPerBufferUnspecified,
-                                                 NULL, NULL);
-        ERL_NIF_TERM ret;
-
-        if (pa_is_error(err)) {
-                ret = pa_error_to_error_tuple(env, err);
-                goto cleanup;
-        }
-
-        res->input_sample_size = Pa_GetSampleSize(sample_format);
-        res->input_frame_size = res->input_sample_size * num_input_channels;
-
-        res->output_sample_size = Pa_GetSampleSize(sample_format);
-        res->output_frame_size = res->output_sample_size * num_output_channels;
-
-        ret = enif_make_tuple2(env,
-                               enif_make_atom(env, "ok"),
-                               enif_make_resource(env, res));
-
- cleanup:
-        enif_release_resource(res);
-        return ret;
-}
-
 static ERL_NIF_TERM portaudio_stream_open_nif(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
         PaStreamParameters *input_params;
@@ -509,7 +465,6 @@ static ErlNifFunc portaudio_nif_funcs[] = {
         {"default_output_device_index", 0, portaudio_default_output_device_index_nif, 0},
         // Streams
         {"stream_format_supported", 3, portaudio_stream_format_supported_nif, 0},
-        {"stream_open_default",     4, portaudio_stream_open_default_nif,     0},
         {"stream_open",             4, portaudio_stream_open_nif,             0},
         {"stream_start",            1, portaudio_stream_start_nif,            0},
         {"stream_stop",             1, portaudio_stream_stop_nif,             0},

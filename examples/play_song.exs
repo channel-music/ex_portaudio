@@ -1,17 +1,21 @@
 defmodule PortAudio.Example.PlaySong do
-  alias PortAudio.Native
+  alias PortAudio.{Device, Stream}
 
   def play_song(filepath) do
     spawn(fn ->
-      {:ok, out_stream} = Native.stream_open_default(0, 2, :int16, 44100.0)
-      Native.stream_start(out_stream)
+      {:ok, dev} = PortAudio.default_output_device()
+      out_stream = Device.stream!(dev,
+        output: %{channel_count: 2, sample_format: :int16},
+        sample_rate: 44100.0
+      )
 
       File.stream!(filepath, [], 1024)
       |> Enum.each(fn chunk ->
-        Native.stream_write(out_stream, chunk)
+        Stream.write!(out_stream, chunk)
       end)
+      Stream.stop(out_stream)
 
-      Native.stream_stop(out_stream)
+      IO.puts "Done"
     end)
   end
 

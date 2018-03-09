@@ -1,10 +1,13 @@
 defmodule PortAudio.Example.RecordAudio do
-  alias PortAudio.Native
+  alias PortAudio.{Device, Stream}
 
   def record_audio(filepath, duration \\ 10_000) do
     p = spawn(fn ->
-      {:ok, in_stream} = Native.stream_open_default(1, 0, :int16, 44100.0)
-      Native.stream_start(in_stream)
+      {:ok, dev} = PortAudio.default_output_device()
+      in_stream = Device.stream!(dev,
+        input: %{channel_count: 2, sample_format: :int16},
+        sample_rate: 44100.0
+      )
       record_loop(in_stream, filepath)
     end)
 
@@ -17,7 +20,7 @@ defmodule PortAudio.Example.RecordAudio do
         File.write!(filepath, pcmdata)
         IO.puts "Done"
     after 0 ->
-        case Native.stream_read(stream) do
+        case Stream.read(stream) do
           {:ok, data} -> record_loop(stream, filepath, pcmdata <> data)
           _           -> record_loop(stream, filepath, pcmdata)
         end
