@@ -35,7 +35,7 @@ defmodule PortAudio.Stream do
 
     output_params =
       if output_params do
-        param_map_to_native(input_params)
+        param_map_to_native(output_params)
       end
 
     with {:ok, s} <- PortAudio.Native.stream_open(input_params, output_params, sample_rate, []) do
