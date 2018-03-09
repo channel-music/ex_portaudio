@@ -1,5 +1,4 @@
 defmodule PortAudio.Native do
-  # TODO: figure out what this actually does?
   @compile {:autoload, false}
   @on_load {:init, 0}
 

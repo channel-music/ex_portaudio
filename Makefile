@@ -1,6 +1,3 @@
-# FIXME: use generic CC
-CC = clang
-
 SRC = c_src/portaudio_nif.c c_src/portaudio_nif/erl_interop.c
 SRC += c_src/portaudio_nif/pa_conversions.c
 
