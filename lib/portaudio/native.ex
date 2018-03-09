@@ -235,7 +235,7 @@ defmodule PortAudio.Native do
   # Nif utils
   ############################################################
   defp load_nif do
-    path = :filename.join(:code.priv_dir(:portaudio), 'portaudio_nif')
+    path = :filename.join(:code.priv_dir(:ex_portaudio), 'portaudio_nif')
     :erlang.load_nif(path, 0)
   end
 
