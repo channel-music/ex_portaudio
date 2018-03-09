@@ -125,6 +125,7 @@ defmodule PortAudio.Device do
   defp add_defaults_to_params(device, params, default_latencies) do
     # PortAudio defaults to high latency
     params
+    |> Map.put(:device, device)
     |> Map.update(:suggested_latency, :high, fn
       :low -> default_latencies[:low]
       :high -> default_latencies[:high]
