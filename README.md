@@ -10,6 +10,13 @@ PortAudio bindings for elixir.
 - Erlang >= 20
 - PortAudio
 
+## Supported Platforms
+
+These are the platforms that I have personally tested, it may or may not 
+work for other operating systems.
+
+- Ubuntu 16.04
+
 ## Installation
 
 There is currently no hex package, so installation can be done using the git
